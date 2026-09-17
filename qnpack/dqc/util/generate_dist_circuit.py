@@ -219,8 +219,7 @@ def main():
     print(f"  n_qubits: {circ.n_qubits}")
     print(f"  Qubit names: {[str(q) for q in circ.qubits]}")
 
-    # Network: 3 servers, each with enough qubits
-    # Server 0 connected to Server 1, Server 0 connected to Server 2
+    # Three servers; server 0 links to servers 1 and 2.
     server_size = total  # Each server can hold all qubits
     network = NISQNetwork(
         [[0, 1], [0, 2]],
@@ -255,8 +254,8 @@ def main():
     for q in data_qubits:
         server_name = q.reg_name
         server_idx = q.index[0]
-        # For single-qreg: the original qubit index is preserved in the name
-        # server_X[idx] -> original q[idx] (approximately, depends on placement)
+        # Single-qreg keeps the original index in the name: server_X[idx]
+        # maps to q[idx], depending on placement.
         role = "DATA" if server_idx < n_data else "ANCILLA"
         if not use_single_qreg:
             role = "UNKNOWN (dual-qreg mode)"

@@ -1,0 +1,70 @@
+# EPR factory with realistic noise — demonstrates fidelity-aware regeneration
+# Use T1/T2 values that cause observable decoherence within detection windows.
+#
+# Key differences from the noiseless config:
+#   - T1: 600 ms  (600000000 ns) — amplitude damping
+#   - T2: 60 ms   (60000000 ns)  — dephasing
+#   - emission_fidelity: 0.98    — imperfect photon emission
+#   - two_q_depolar_prob: 0.0001 — gate noise on 2-qubit ops
+#   - one_q_depolar_prob: 0.00001 — gate noise on 1-qubit ops
+#   - min_fidelity: 0.85         — more permissive threshold (noisy pairs still useful)
+#
+# With these noise parameters, pre-generated EPR pairs will decohere
+# noticeably within ~10 ms, so the factory's staleness eviction and
+# fidelity-aware consumption paths are exercised.
+
+sim:
+  debug: false
+  iterations: 10
+
+circuit:
+  mode: "tket"
+  pre_schedule_entanglement: false
+  dist_commands_file: "commands/grover_4_2qpu.txt"
+  measure_qubits: "{1: [21, 20], 2: [21, 20]}"
+
+qpu:
+  num_qpu_nodes: 2
+  qubits: 6
+  two_q_depolar_prob: 0.0001
+  one_q_depolar_prob: 0.00001
+  emission_fidelity: 0.98
+  emission_duration: 0
+  collection_efficiency: 1
+
+memory:
+  noise_model: "T1T2NoiseModel"
+  T1: 600000000
+  T2: 60000000
+
+gate_durations:
+  one_q_gate_duration: 5000
+  two_q_gate_duration: 10700
+
+clock:
+  HZ: 1000000
+  max_ticks: -1
+
+channel:
+  q_lightspeed: 200000
+  c_lightspeed: 200000
+  photon_loss: 0
+  init_photon_loss: 0
+  quantum_noise_model: "DepolarNoiseModel"
+  fiber_depolar_rate: 0
+  time_independent: true
+
+bsm:
+  detection_window: 4320000
+  system_delay: 0
+  coupling_efficiency: 1
+  detector_wait_factor: 1.05
+  max_emission_retries: 90
+  retry_duration: 0
+
+epr_factory:
+  enabled: true
+  pool_size_per_pair: 8
+  comm_qubits_reserved: 16
+  min_fidelity: 0.85
+  check_interval_ns: 1000000

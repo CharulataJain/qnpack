@@ -1,0 +1,64 @@
+# Same as default parameters.yml but with EPR factory enabled
+# Usage:
+#   cd qnpack/dqc
+#   python -c "
+#     from qnpack.dqc.sim import DQCSimulation
+#     sim = DQCSimulation(parameter_file='../../tests/configs/parameters_factory_enabled.yml')
+#     sim.start(num_runs=5)
+#   "
+
+sim:
+  debug: false
+  iterations: 10
+
+circuit:
+  mode: "tket"
+  pre_schedule_entanglement: false
+  dist_commands_file: "commands/grover_4_2qpu.txt"
+  measure_qubits: "{1: [21, 20], 2: [21, 20]}"
+
+qpu:
+  num_qpu_nodes: 2
+  qubits: 6
+  two_q_depolar_prob: 0
+  one_q_depolar_prob: 0
+  emission_fidelity: 1
+  emission_duration: 0
+  collection_efficiency: 1
+
+memory:
+  noise_model: "T1T2NoiseModel"
+  T1: 1e15
+  T2: 1e15
+
+gate_durations:
+  one_q_gate_duration: 5000
+  two_q_gate_duration: 10700
+
+clock:
+  HZ: 1000000
+  max_ticks: -1
+
+channel:
+  q_lightspeed: 200000
+  c_lightspeed: 200000
+  photon_loss: 0
+  init_photon_loss: 0
+  quantum_noise_model: "DepolarNoiseModel"
+  fiber_depolar_rate: 0
+  time_independent: true
+
+bsm:
+  detection_window: 4320000
+  system_delay: 0
+  coupling_efficiency: 1
+  detector_wait_factor: 1.05
+  max_emission_retries: 90
+  retry_duration: 0
+
+epr_factory:
+  enabled: true
+  pool_size_per_pair: 8
+  comm_qubits_reserved: 16
+  min_fidelity: 0.9
+  check_interval_ns: 1000000

@@ -80,7 +80,7 @@ def brute_force_maxcut(n_qubits, edges):
 
 
 # ─────────────────────────────────────────────
-# 4. ENDIANNESS FIX (IMPORTANT)
+# 4. ENDIANNESS
 # ─────────────────────────────────────────────
 def tuple_to_bitstring(t):
     return ''.join(str(b) for b in t)
@@ -91,8 +91,7 @@ def tuple_to_bitstring(t):
 # ─────────────────────────────────────────────
 N_QUBITS = 9
 
-# FIX: Use complete graph instead of ring graph
-# This ensures all qubits interact, even when distributed across QPUs
+# Complete graph so every qubit interacts, even when spread across QPUs.
 edges = [(i, j) for i in range(N_QUBITS) for j in range(i+1, N_QUBITS)]
 
 gammas = [0.8, 1.2, 1.6, 2.0]

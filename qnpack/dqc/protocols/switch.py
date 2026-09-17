@@ -414,8 +414,8 @@ class SwitchedEntanglementWorker(NodeProtocol):
             # Configure optical switch route BEFORE forwarding qout
             self._configure_switch_route()
 
-            # Forward qmemory output to the q_to_{bsm_label} port
-            # (which is wired to the optical switch input)
+            # Forward qmemory output to q_to_{bsm_label}, wired to the
+            # optical switch input.
             parent._forward_qout_to_bsm(bsm_label, actual_emit)
 
             yield self.await_port_input(bsm_clk_port)

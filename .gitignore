@@ -16,3 +16,9 @@ dist/
 # Ignore editor and system files
 .DS_Store
 *.swp
+
+# DQC simulation outputs
+qnpack/dqc/results/
+qnpack/dqc/qpu_partitioned_commands.json
+qnpack/dqc/qnpack.code-workspace
+qnpack.egg-info/

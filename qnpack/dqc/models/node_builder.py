@@ -381,10 +381,14 @@ class QPUNodeBuilder:
             for bsm_res in bsm_result_in:
                 bsm_name = bsm_res["bsm_node"]
                 port_names.append(f"bsm_res_from_{bsm_name}")
+                # Dedicated EPR-factory result port (see epr_factory.py).
+                port_names.append(f"factory_bsm_res_from_{bsm_name}")
 
             for bsm_clk in bsm_clk_in:
                 bsm_name = bsm_clk["bsm_node"]
                 port_names.append(f"clk_from_{bsm_name}")
+                # Dedicated EPR-factory clock port (see epr_factory.py).
+                port_names.append(f"factory_clk_from_{bsm_name}")
 
             # Remove duplicates while preserving order
             seen = set()
@@ -458,6 +462,11 @@ def create_gated_bsm_nodes(
             "clk_to_right",
             "BSM_res_to_left",
             "BSM_res_to_right",
+            # Dedicated EPR-factory output ports (parallel classical plane)
+            "factory_clk_to_left",
+            "factory_clk_to_right",
+            "factory_BSM_res_to_left",
+            "factory_BSM_res_to_right",
             "ctrl_port",
             "clk_port",
             "comm_port",
@@ -593,6 +602,11 @@ def create_bsm_nodes_from_topology(
             "clk_to_right",
             "BSM_res_to_left",
             "BSM_res_to_right",
+            # Dedicated EPR-factory output ports (parallel classical plane)
+            "factory_clk_to_left",
+            "factory_clk_to_right",
+            "factory_BSM_res_to_left",
+            "factory_BSM_res_to_right",
             "ctrl_port",
             "clk_port",
             "comm_port",

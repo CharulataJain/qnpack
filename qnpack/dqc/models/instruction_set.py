@@ -254,9 +254,8 @@ _register(
 )
 
 # ── QASM3 "gate" wrapper ────────────────────────────────────────────────────
-# The QASM3Frontend wraps every gate in {"op": "gate", "gate": "<name>", …}.
-# We register "gate" as a pseudo-op so the validator can recognise the
-# wrapper and inspect the inner gate name.
+# QASM3Frontend wraps gates as {"op": "gate", "gate": "<name>", …}, so "gate"
+# is registered as a pseudo-op for the validator to unwrap.
 
 _register(
     OpSpec("gate", OpCategory.GATE_1Q, num_qubits=-1, num_params=-1,

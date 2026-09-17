@@ -49,11 +49,31 @@ class BSMProtocol(NodeProtocol):
         self.detector = self.node.subcomponents[f"{self.node.name}_Detector"]
         self.clk = self.node.subcomponents[f"{self.node.name}_CLK"]
 
-    def _send_result_to_qpus(self, result_msg):
-        """Broadcast a BSM result message to both QPU nodes."""
-        for port_name in ("BSM_res_to_left", "BSM_res_to_right"):
+    def _send_result_to_qpus(self, result_msg, factory=False):
+        """Broadcast a BSM result message to both QPU nodes.
+
+        When *factory* is ``True`` the message is emitted on the dedicated
+        EPR-factory classical plane (``factory_BSM_res_to_*``) so that the
+        factory worker protocols receive it without contending with the
+        circuit-execution workers on the shared ports.
+        """
+        if factory:
+            port_names = ("factory_BSM_res_to_left", "factory_BSM_res_to_right")
+        else:
+            port_names = ("BSM_res_to_left", "BSM_res_to_right")
+        for port_name in port_names:
             if port_name in self.node.ports:
                 self.node.ports[port_name].tx_output(result_msg)
+
+    def _send_clock_to_qpus(self, clk_msg, factory=False):
+        """Broadcast a clock tick to both QPU nodes on the correct plane."""
+        if factory:
+            port_names = ("factory_clk_to_left", "factory_clk_to_right")
+        else:
+            port_names = ("clk_to_left", "clk_to_right")
+        for port_name in port_names:
+            if port_name in self.node.ports:
+                self.node.ports[port_name].tx_output(clk_msg)
 
     def run(self):
         log.debug(
@@ -71,7 +91,7 @@ class BSMProtocol(NodeProtocol):
             item = msg.items[0]
             msg_type = item.get('type')
 
-            if msg_type != 'start_entanglement':
+            if msg_type not in ('start_entanglement', 'factory_start_entanglement'):
                 log.debug(
                     f"[{self.node.name}] Received unknown message type: {msg_type}"
                 )
@@ -79,9 +99,11 @@ class BSMProtocol(NodeProtocol):
 
             start_label = item.get('start_label')
             qpu_ids = item.get('qpu_ids', [])
+            is_factory = (msg_type == 'factory_start_entanglement')
 
             log.debug(
-                f"[{self.node.name}] Received 'Start Entanglement' "
+                f"[{self.node.name}] Received "
+                f"{'factory ' if is_factory else ''}'Start Entanglement' "
                 f"for start_label={start_label}, QPUs={qpu_ids}"
             )
 
@@ -98,10 +120,7 @@ class BSMProtocol(NodeProtocol):
             yield self.await_port_output(self.clk.ports["cout"])
             clk_msg = self.clk.ports["cout"].rx_output()
 
-            if "clk_to_left" in self.node.ports:
-                self.node.ports["clk_to_left"].tx_output(clk_msg)
-            if "clk_to_right" in self.node.ports:
-                self.node.ports["clk_to_right"].tx_output(clk_msg)
+            self._send_clock_to_qpus(clk_msg, factory=is_factory)
             log.debug(f"[{self.node.name}] Sent clock tick to left & right QPUs")
 
             retries = 0
@@ -141,7 +160,7 @@ class BSMProtocol(NodeProtocol):
                             'retries': retries,
                             'bsm_node': self.node.name,
                         })
-                        self._send_result_to_qpus(result_msg)
+                        self._send_result_to_qpus(result_msg, factory=is_factory)
                         success = True
                         break
                     else:
@@ -156,7 +175,7 @@ class BSMProtocol(NodeProtocol):
                             'retries': retries,
                             'bsm_node': self.node.name,
                         })
-                        self._send_result_to_qpus(result_msg)
+                        self._send_result_to_qpus(result_msg, factory=is_factory)
                 else:
                     log.debug(
                         f"[{self.node.name}] Detector timeout "
@@ -170,7 +189,7 @@ class BSMProtocol(NodeProtocol):
                         'retries': retries,
                         'bsm_node': self.node.name,
                     })
-                    self._send_result_to_qpus(result_msg)
+                    self._send_result_to_qpus(result_msg, factory=is_factory)
 
                 retries += 1
 
@@ -179,10 +198,7 @@ class BSMProtocol(NodeProtocol):
                         self.clk.start()
                     yield self.await_port_output(self.clk.ports["cout"])
                     retry_clk_msg = self.clk.ports["cout"].rx_output()
-                    if "clk_to_left" in self.node.ports:
-                        self.node.ports["clk_to_left"].tx_output(retry_clk_msg)
-                    if "clk_to_right" in self.node.ports:
-                        self.node.ports["clk_to_right"].tx_output(retry_clk_msg)
+                    self._send_clock_to_qpus(retry_clk_msg, factory=is_factory)
                     log.debug(
                         f"[{self.node.name}] Sent retry clock tick "
                         f"(attempt {retries}) to QPUs"

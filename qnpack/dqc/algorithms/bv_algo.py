@@ -61,9 +61,8 @@ top_state = list(sorted_counts.keys())[0]
 
 
 def decode(state):
-    # pytket returns (q[0], q[1], ..., q[11])
-    # q[0..10] are the query qubits, q[11] is the ancilla
-    # Just take the first n-1 bits, no reversal needed
+    # pytket returns (q[0], ..., q[11]) with q[11] the ancilla, so take the
+    # first n-1 bits; no reversal needed.
     return ''.join(str(b) for b in state[:-1])
 
 
