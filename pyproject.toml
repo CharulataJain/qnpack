@@ -49,6 +49,21 @@ dqc-sim = "qnpack.dqc.sim:main"
 [tool.setuptools.packages.find]
 include = ["qnpack", "qnpack.*"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # netsquid 1.1.8 (Cython ext) still touches the removed `scipy.sparse.csr`
+    # namespace internally; nothing we can do from this package.
+    "ignore:Please import `csr_matrix` from the `scipy.sparse` namespace:DeprecationWarning",
+    # netsquid's DataCollector concatenates empty DataFrames (pandas >= 2.1).
+    "ignore:The behavior of DataFrame concatenation with empty or all-NA entries is deprecated:FutureWarning",
+    # netsquid/netsquid-trappedions extension modules do ndim>0 -> scalar casts at import.
+    "ignore:Conversion of an array with ndim > 0 to a scalar is deprecated:DeprecationWarning",
+    # matplotlib (pulled in by qnpack.dqc.results) uses legacy pyparsing camelCase API.
+    "ignore::DeprecationWarning:matplotlib.*",
+    "ignore::DeprecationWarning:pyparsing.*",
+]
+
 [[tool.uv.index]]
 name = "netsquid"
 url = "https://pypi.netsquid.org/"

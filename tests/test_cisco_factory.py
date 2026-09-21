@@ -40,7 +40,9 @@ os.chdir(
 
 import logging
 logging.disable(logging.CRITICAL)
-warnings.filterwarnings("ignore")
+# Warning suppression is handled centrally via [tool.pytest.ini_options]
+# filterwarnings in pyproject.toml; a blanket ignore here would mask warnings
+# session-wide for every other test module too.
 
 WATCHDOG_SECONDS = 180
 QASM = "qasm/grover4_2qpu.qasm"

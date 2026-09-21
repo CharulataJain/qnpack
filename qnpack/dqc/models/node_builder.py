@@ -212,26 +212,26 @@ class QPUNodeBuilder:
         phys_instr = [
             PhysicalInstruction(IInit(), duration=0, parallel=True),
             # --- 1-qubit gates ---
-            PhysicalInstruction(INSTR_H,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_X,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_Z,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_S,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_Z, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_X, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_Y, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_H,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_X,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_Z,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_S,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_Z, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_X, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_Y, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
             # --- 2-qubit gates ---
-            PhysicalInstruction(INSTR_CNOT,    duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
-            PhysicalInstruction(INSTR_CROT_Z,  duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CNOT,    duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CROT_Z,  duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
             # --- 3-qubit gates ---
-            PhysicalInstruction(INSTR_TOFFOLI, duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
-            PhysicalInstruction(INSTR_CCX,     duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_TOFFOLI, duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CCX,     duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
             PhysicalInstruction(INSTR_EMIT,    duration=0, parallel=False, topology=None),
             PhysicalInstruction(
                 DQC_EMIT,
                 duration=0,
                 parallel=False,
                 topology=None,
-                q_noise_model=CustomEmissionNoiseModel(
+                quantum_noise_model=CustomEmissionNoiseModel(
                     emission_fidelity=self.emission_fidelity,
                     collection_efficiency=self.collection_efficiency,
                 ),
