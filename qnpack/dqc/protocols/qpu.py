@@ -36,11 +36,20 @@ from netsquid.components.instructions import (
 )
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits import operators as ops
+from netsquid.qubits.stabtools import StabRepr
 from netsquid.components.qprogram import QuantumProgram
 
 from qnpack.dqc.models.instruction_set import GATE_OPS
 
 log = logging.getLogger(__name__)
+
+
+def _is_stabilizer_formalism():
+    """Return True when the active NetSquid formalism is stabilizer (STAB)."""
+    try:
+        return ns.get_qstate_formalism() is StabRepr
+    except Exception:
+        return False
 
 # BSM detector output values that indicate successful Bell measurement
 BSM_SUCCESS = [[2], [3]]
@@ -345,10 +354,31 @@ class EntanglementWorkerProtocol(NodeProtocol):
                 role = cmd.get('role')
                 apply_corrections = is_link_side if role is None else (role == 'peer')
                 if apply_corrections and bsm_data is not None:
-                    if bsm_data == [2] or bsm_data == [3]:
-                        yield from self._apply_correction(actual_emit, ops.X)
-                    if bsm_data == [3]:
-                        yield from self._apply_correction(actual_emit, ops.Z)
+                    if _is_stabilizer_formalism():
+                        # STAB: corrections must match the BSM circuit the
+                        # detector used, selected by bsm.deterministic_bsm.
+                        if getattr(self.qpu_protocol.cfg.bsm, 'deterministic_bsm', False):
+                            # CNOT+H+Z-measure BSM:
+                            #   [2] = m2=0 → no correction
+                            #   [3] = m2=1 → X correction
+                            if bsm_data == [3]:
+                                yield from self._apply_correction(actual_emit, ops.X)
+                        else:
+                            # Pauli-measurement BSM leaves XZ/ZX stabilizers
+                            # rather than XX/ZZ, so H restores the basis first:
+                            #   [2] = m1=0, m2=0 → H
+                            #   [3] = m1=0, m2=1 → H then X
+                            yield from self._apply_correction(actual_emit, ops.H)
+                            if bsm_data == [3]:
+                                yield from self._apply_correction(actual_emit, ops.X)
+                    else:
+                        # KET: create_meas_ops() POVM outcomes.
+                        #   [2] = success, X correction
+                        #   [3] = success, X and Z correction
+                        if bsm_data == [2] or bsm_data == [3]:
+                            yield from self._apply_correction(actual_emit, ops.X)
+                        if bsm_data == [3]:
+                            yield from self._apply_correction(actual_emit, ops.Z)
 
                 parent.occupied_comm_qubits.add(actual_emit)
                 log.debug(

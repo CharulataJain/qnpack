@@ -71,7 +71,33 @@ class QASM3CommandExtractor(QASMVisitor):
                                 break
                             except (ValueError, IndexError):
                                 pass
-        
+
+                # Alternate convention: _q_comp_qpu_{QPU}_{row}_{col} and
+                # _q_comm_qpu_{QPU}_{idx}_{subidx}. No qasm file in-tree emits
+                # these yet; kept so such files parse if a partitioner produces
+                # them. See _parse_qubit_ref for the local-index mapping.
+                elif reg_name.startswith('_q_comp_qpu_') or reg_name.startswith('_q_comm_qpu_'):
+                    # parts = ['', 'q', 'comp'/'comm', 'qpu', '{QPU}', '{row}', '{col}']
+                    parts = reg_name.split('_')
+                    if len(parts) >= 5:
+                        try:
+                            qpu_id = int(parts[4])
+                            self.qubit_to_qpu[reg_name] = qpu_id
+                            if qpu_id not in self.qpu_commands:
+                                self.qpu_commands[qpu_id] = []
+
+                            # Track data qubits for measurement (comp qubits)
+                            if reg_name.startswith('_q_comp_qpu_'):
+                                data_idx_str = reg_name.split('_')[-1]
+                                try:
+                                    data_idx = int(data_idx_str)
+                                    local_pos = DATA_REGION_START + data_idx
+                                    self.measure_qubits.setdefault(qpu_id, []).append(local_pos)
+                                except ValueError:
+                                    pass
+                        except (ValueError, IndexError):
+                            pass
+
         return self.generic_visit(node)
     
     def visit_ClassicalDeclaration(self, node):
@@ -362,6 +388,20 @@ class QASM3CommandExtractor(QASMVisitor):
             # Communication qubit: _comm_qubit{QPU}_{comm_idx}
             comm_idx = int(name.split('_')[-1])
             local_idx = comm_idx - 1
+        elif name.startswith('_q_comp_qpu_'):
+            # _q_comp_qpu_{QPU}_{row}_{col} — flatten (row, col) into the
+            # data region, assuming 4 columns per row.
+            parts = name.split('_')
+            row = int(parts[5])
+            col = int(parts[6])
+            local_idx = DATA_REGION_START + row * 4 + col
+        elif name.startswith('_q_comm_qpu_'):
+            # _q_comm_qpu_{QPU}_{idx}_{subidx} — comm qubits occupy the
+            # positions below DATA_REGION_START.
+            parts = name.split('_')
+            idx = int(parts[5])
+            subidx = int(parts[6])
+            local_idx = idx * 2 + subidx
         else:
             local_idx = index
 

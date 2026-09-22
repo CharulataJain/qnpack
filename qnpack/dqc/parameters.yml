@@ -1,19 +1,26 @@
 sim:
   debug: false
   iterations: 10
+  # Quantum state formalism:
+  #   "KET"  — full state vector. Supports arbitrary (non-Clifford) gates such as
+  #            Rz(theta)/CU1(theta), but state size grows exponentially with qubits.
+  #   "STAB" — stabilizer (CHP) representation. Scales polynomially so it handles
+  #            much larger circuits, but is restricted to Clifford operations.
+  #            Use with Clifford-only circuits (e.g. the GHZ qasm files).
+  formalism: "STAB"
 
 # Circuit source configuration:
 #   mode: "tket"  — use pytket-dqc dist_commands text file
 #   mode: "cisco" — use Cisco QASM 3.0 file directly
 circuit:
-  mode: "tket"
+  mode: "cisco"
   pre_schedule_entanglement: false
   # Path to the dist_commands file (used when mode=tket)
   dist_commands_file: "commands/grover_4_3qpu.txt"
   #dist_commands_file: "commands/grover_4q_3qpu.txt"
   # "commands/dist_commands_4q.txt"
   # Path to the QASM 3.0 file (used when mode=cisco)
-  qasm_file: "qasm/grover4_1qpu.qasm"
+  qasm_file: "qasm/test_ghz.qasm"
   # "qasm/grover4_topv1.qasm"
   # "qasm/grover12_3qpu.qasm"
   # measure_qubits: which memory positions to read per QPU after each run.
@@ -78,6 +85,13 @@ channel:
   time_independent: true          # true = rate is direct depol probability per photon (recommended for short channels)
 
 bsm:
+  # BSM circuit style under the STAB formalism (ignored when formalism is KET,
+  # which always uses the create_meas_ops() POVM):
+  #   false — APE-style Pauli tensor measurements (X⊗Z then Z⊗X). 50% success
+  #           rate, models a linear-optical BSM. Peer applies H, then X if [3].
+  #   true  — standard CNOT + H + Z-measure circuit. Always succeeds (100% swap
+  #           rate). Peer applies X only if [3]. Useful for protocol debugging.
+  deterministic_bsm: false
   detection_window: 4320000       # BSM detector gating window (ns)
   system_delay: 0                 # BSM detector system delay (ns)
   coupling_efficiency: 1          # Photon coupling efficiency (0 to 1)
