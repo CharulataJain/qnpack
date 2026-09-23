@@ -183,13 +183,16 @@ def log_entanglement_stats(final_data):
 
 def csv_filename(circuit_cfg, num_runs):
     """Name the CSV after the circuit, run count, and scheduling mode."""
-    pre_scheduled = getattr(circuit_cfg, "pre_schedule_entanglement", False)
+    from qnpack.common.config import require_cfg
+
+    pre_scheduled = require_cfg(circuit_cfg, "pre_schedule_entanglement", "circuit")
     tag = "prescheduled" if pre_scheduled else "nopresched"
 
-    if circuit_cfg.get("mode") == "cisco":
-        source = getattr(circuit_cfg, "qasm_file", "unknown")
+    mode = require_cfg(circuit_cfg, "mode", "circuit")
+    if mode == "cisco":
+        source = require_cfg(circuit_cfg, "qasm_file", "circuit")
     else:
-        source = getattr(circuit_cfg, "dist_commands_file", "unknown")
+        source = require_cfg(circuit_cfg, "dist_commands_file", "circuit")
 
     stem = os.path.splitext(os.path.basename(source))[0]
     return f"{stem}_{num_runs}iter_{tag}.csv"

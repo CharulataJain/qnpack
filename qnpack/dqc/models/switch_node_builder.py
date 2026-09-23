@@ -229,12 +229,12 @@ def build_switch_connections(
     qpu_info: dict,
     bsm_nodes: list,
     bsm_info: dict,
-    q_lightspeed: float = 200000,
-    c_lightspeed: float = 200000,
-    photon_loss: float = 0,
-    init_photon_loss: float = 0,
-    fiber_depolar_rate: float = 0,
-    time_independent: bool = True,
+    q_lightspeed: float,
+    c_lightspeed: float,
+    photon_loss: float,
+    init_photon_loss: float,
+    fiber_depolar_rate: float,
+    time_independent: bool,
 ):
     """Wire the switch nodes into the NetSquid network.
 

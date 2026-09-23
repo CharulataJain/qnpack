@@ -5,37 +5,37 @@ Resolve configuration into the concrete values a run needs.
 
 Two jobs: work out which qubits to measure, and expand the noise
 parameters into the list of configurations to sweep.
+
+All simulation parameters **must** be explicitly specified in
+``parameters.yml``.  No hardcoded fallback values are permitted —
+if a required value is missing the simulation aborts with a clear
+error message.
 """
 import ast
 import itertools
 import logging
 from collections import OrderedDict
 
+from qnpack.common.config import MissingConfigError, require_cfg
+
 log = logging.getLogger(__name__)
 
 #: Noise parameters that can be swept, and the config block each lives in.
+#: Each tuple is ``(param_name, config_block_name)``.  There are **no**
+#: default values — every parameter must be present in ``parameters.yml``.
 SWEEP_PARAMS = (
-    ("two_q_depolar_prob", "qpu", 0),
-    ("one_q_depolar_prob", "qpu", 0),
-    ("emission_fidelity", "qpu", 1.0),
-    ("collection_efficiency", "qpu", 1.0),
-    ("T1", "memory", 1e15),
-    ("T2", "memory", 1e15),
-    ("one_q_gate_duration", "gate_durations", 0),
-    ("two_q_gate_duration", "gate_durations", 0),
-    ("photon_loss", "channel", 0),
-    ("init_photon_loss", "channel", 0),
-    ("fiber_depolar_rate", "channel", 0),
+    ("two_q_depolar_prob", "qpu"),
+    ("one_q_depolar_prob", "qpu"),
+    ("emission_fidelity", "qpu"),
+    ("collection_efficiency", "qpu"),
+    ("T1", "memory"),
+    ("T2", "memory"),
+    ("one_q_gate_duration", "gate_durations"),
+    ("two_q_gate_duration", "gate_durations"),
+    ("photon_loss", "channel"),
+    ("init_photon_loss", "channel"),
+    ("fiber_depolar_rate", "channel"),
 )
-
-#: Defaults used when the ``epr_factory`` block is absent entirely.
-EPR_FACTORY_DEFAULTS = {
-    "enabled": False,
-    "pool_size_per_pair": 3,
-    "comm_qubits_reserved": 4,
-    "min_fidelity": 0.9,
-    "check_interval_ns": 1_000_000,
-}
 
 
 def resolve_measure_qubits(circuit_cfg):
@@ -49,11 +49,13 @@ def resolve_measure_qubits(circuit_cfg):
     dict or None
         ``{qpu_id: [position, …]}``, or ``None`` to derive from topology.
     """
-    mode = getattr(circuit_cfg, 'mode', 'tket') if circuit_cfg else 'tket'
+    if circuit_cfg is None:
+        raise MissingConfigError("circuit", "mode")
+    mode = require_cfg(circuit_cfg, 'mode', 'circuit')
     if mode != 'tket':
         return None
 
-    raw = getattr(circuit_cfg, 'measure_qubits', None) if circuit_cfg else None
+    raw = getattr(circuit_cfg, 'measure_qubits', None)
     if raw is None:
         log.info(
             "circuit.measure_qubits not set — will auto-derive from topology"
@@ -106,7 +108,11 @@ def build_sweep(cfg, varying_params, fixed_params):
 
     1. ``varying_params`` — a list of values to sweep
     2. ``fixed_params``   — a single scalar override
-    3. ``cfg``            — the default from parameters.yml
+    3. ``cfg``            — the value from parameters.yml (required)
+
+    Every parameter in :data:`SWEEP_PARAMS` **must** be present in
+    ``parameters.yml`` (under its respective section).  If it is missing,
+    the simulation aborts with a :class:`MissingConfigError`.
 
     Returns
     -------
@@ -116,14 +122,16 @@ def build_sweep(cfg, varying_params, fixed_params):
     """
     names, sweeps = [], []
 
-    for name, block, default in SWEEP_PARAMS:
+    for name, block in SWEEP_PARAMS:
         module_cfg = getattr(cfg, block, None)
+        if module_cfg is None:
+            raise MissingConfigError(block, name)
         if name in varying_params:
             values = varying_params[name]
         elif name in fixed_params:
             values = [fixed_params[name]]
         else:
-            values = [getattr(module_cfg, name, default) or default]
+            values = [require_cfg(module_cfg, name, block)]
         names.append(name)
         sweeps.append(values)
 
@@ -154,8 +162,31 @@ def apply_params(cfg, params):
     cfg.channel.fiber_depolar_rate = params["fiber_depolar_rate"]
 
 
-def ensure_epr_factory_defaults(cfg):
-    """Add an ``epr_factory`` block if the config file omits one."""
-    if not hasattr(cfg, 'epr_factory'):
-        from munch import Munch
-        cfg._munch.epr_factory = Munch(dict(EPR_FACTORY_DEFAULTS))
+def require_epr_factory_config(cfg):
+    """Validate that the ``epr_factory`` block exists and has all required keys.
+
+    Called before each run.  If the block is missing entirely, the
+    simulation aborts — users must explicitly set ``epr_factory.enabled``
+    to ``false`` if they don't want the factory.
+
+    When ``enabled`` is ``true``, every factory parameter is required.
+    """
+    epr = require_cfg(cfg, 'epr_factory', '<root>')
+
+    # ``enabled`` is always required so the user makes a conscious choice.
+    enabled = require_cfg(epr, 'enabled', 'epr_factory')
+
+    # When disabled, no further keys are required.
+    if not enabled:
+        return
+
+    # When enabled, validate every factory parameter.
+    for key in (
+        "pool_size_per_pair",
+        "comm_qubits_reserved",
+        "min_fidelity",
+        "check_interval_ns",
+        "pool_only",
+        "drain_timeout_ns",
+    ):
+        require_cfg(epr, key, "epr_factory")

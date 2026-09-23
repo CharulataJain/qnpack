@@ -1681,7 +1681,10 @@ class ControllerProtocol(NodeProtocol):
     def run(self):
         log.debug(f"[{self.node.name}] Starting at time {ns.sim_time()}")
 
+        from qnpack.common.config import MissingConfigError, require_cfg
         circuit_cfg = getattr(self.cfg, 'circuit', None)
+        if circuit_cfg is None:
+            raise MissingConfigError("circuit", "mode")
 
         if self._pre_labeled_commands is not None:
             # Fast path: the DQC plugin already parsed, validated, labeled.
@@ -1735,9 +1738,10 @@ class ControllerProtocol(NodeProtocol):
             self.end_ready   = {k: set() for k in self.end_qpus}
             self.start_pool_ready = {}
 
-        if getattr(self.cfg.circuit, 'pre_schedule_entanglement', False):
-            expected_latency = getattr(
-                self.cfg.circuit, 'expected_ent_latency_ns', 0
+        pre_sched = require_cfg(self.cfg.circuit, 'pre_schedule_entanglement', 'circuit')
+        if pre_sched:
+            expected_latency = require_cfg(
+                self.cfg.circuit, 'expected_ent_latency_ns', 'circuit'
             )
             stats = insert_pre_entanglement_commands(
                 self.qpu_commands,

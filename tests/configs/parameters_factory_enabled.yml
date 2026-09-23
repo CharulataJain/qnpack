@@ -62,3 +62,5 @@ epr_factory:
   comm_qubits_reserved: 16
   min_fidelity: 0.9
   check_interval_ns: 1000000
+  pool_only: true
+  drain_timeout_ns: 5000000

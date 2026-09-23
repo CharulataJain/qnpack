@@ -23,6 +23,7 @@ from netsquid.components.models.delaymodels import FibreDelayModel
 from netsquid.components.models.qerrormodels import FibreLossModel
 from netsquid.components.qchannel import QuantumChannel
 
+from qnpack.common.config import require_cfg
 from qnpack.dqc.models.node_builder import SafeDepolarNoiseModel
 
 log = logging.getLogger(__name__)
@@ -33,16 +34,21 @@ CHANNEL_LENGTH_KM = 0.01
 
 
 class ChannelParams:
-    """Channel-level physical parameters read from the ``channel:`` config."""
+    """Channel-level physical parameters read from the ``channel:`` config.
+
+    Every value is **required** — there are no hardcoded defaults.
+    If any key is missing from the ``channel:`` block in
+    ``parameters.yml``, the simulation aborts immediately.
+    """
 
     def __init__(self, cfg):
         ch = cfg.channel
-        self.q_lightspeed = getattr(ch, 'q_lightspeed', 200000)
-        self.c_lightspeed = getattr(ch, 'c_lightspeed', 200000)
-        self.photon_loss = getattr(ch, 'photon_loss', 0)
-        self.init_photon_loss = getattr(ch, 'init_photon_loss', 0)
-        self.fiber_depolar_rate = getattr(ch, 'fiber_depolar_rate', 0)
-        self.time_independent = getattr(ch, 'time_independent', False)
+        self.q_lightspeed = require_cfg(ch, 'q_lightspeed', 'channel')
+        self.c_lightspeed = require_cfg(ch, 'c_lightspeed', 'channel')
+        self.photon_loss = require_cfg(ch, 'photon_loss', 'channel')
+        self.init_photon_loss = require_cfg(ch, 'init_photon_loss', 'channel')
+        self.fiber_depolar_rate = require_cfg(ch, 'fiber_depolar_rate', 'channel')
+        self.time_independent = require_cfg(ch, 'time_independent', 'channel')
 
     def quantum_models(self):
         """Delay, loss, and noise models for a quantum channel."""

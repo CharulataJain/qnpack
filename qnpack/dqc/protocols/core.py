@@ -127,8 +127,8 @@ class DQCProtocol(LocalProtocol):
             self.add_subprotocol(bsm_proto)
 
         # ── EPR Factory setup ────────────────────────────────────────
-        epr_factory_cfg = getattr(self.cfg, 'epr_factory', None)
-        if epr_factory_cfg and getattr(epr_factory_cfg, 'enabled', False):
+        epr_factory_cfg = self.cfg.epr_factory   # required block
+        if epr_factory_cfg.enabled:
             self._setup_epr_factories(self.cfg, self.qpu_nodes)
 
         log.debug(
@@ -145,16 +145,21 @@ class DQCProtocol(LocalProtocol):
         :meth:`ControllerProtocol._align_pools_with_circuit`, once the
         compiled circuit is known, so that pool storage can be placed clear
         of every position the circuit names.
+
+        All EPR factory parameters are **required** from
+        ``parameters.yml``.
         """
+        from qnpack.common.config import require_cfg
+
         epr_cfg = cfg.epr_factory
-        pool_size = getattr(epr_cfg, 'pool_size_per_pair', 3)
-        comm_reserved = getattr(epr_cfg, 'comm_qubits_reserved', 4)
-        min_fidelity = getattr(epr_cfg, 'min_fidelity', 0.9)
-        check_interval = getattr(epr_cfg, 'check_interval_ns', 1_000_000)
+        pool_size = require_cfg(epr_cfg, 'pool_size_per_pair', 'epr_factory')
+        comm_reserved = require_cfg(epr_cfg, 'comm_qubits_reserved', 'epr_factory')
+        min_fidelity = require_cfg(epr_cfg, 'min_fidelity', 'epr_factory')
+        check_interval = require_cfg(epr_cfg, 'check_interval_ns', 'epr_factory')
         # Pool-only execution: no on-demand fallback, block until refill
         # delivers (see QPUProtocol._await_pooled_pair).
-        pool_only = bool(getattr(epr_cfg, 'pool_only', False))
-        drain_timeout = float(getattr(epr_cfg, 'drain_timeout_ns', 5e6))
+        pool_only = bool(require_cfg(epr_cfg, 'pool_only', 'epr_factory'))
+        drain_timeout = float(require_cfg(epr_cfg, 'drain_timeout_ns', 'epr_factory'))
 
 
         T1 = float(cfg.memory.T1)

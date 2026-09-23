@@ -5,6 +5,9 @@ Read the topology file and turn it into nodes.
 
 This module answers "what exists": QPUs, BSMs, and the controller. It does
 not connect anything — see :mod:`.channels` for that.
+
+All physical parameters are **required** from ``parameters.yml`` — no
+hardcoded defaults.
 """
 import json
 import logging
@@ -13,6 +16,7 @@ import os
 from netsquid.components.clock import Clock
 from netsquid.nodes import Node
 
+from qnpack.common.config import require_cfg
 from qnpack.dqc.models.node_builder import (
     QPUNodeBuilder,
     create_bsm_nodes_from_topology,
@@ -65,25 +69,27 @@ def create_qpu_nodes(cfg, topology_data, fiber_depolar_rate):
     ``cfg`` values are only fallbacks for the (unused) path that builds QPUs
     without a topology.
 
+    All physical parameters are **required** from ``parameters.yml``.
+
     Returns
     -------
     tuple
         ``(qpu_nodes, qpu_info)``
     """
     builder = QPUNodeBuilder(
-        n=getattr(cfg.qpu, 'num_qpu_nodes', 0),
-        num_qubits=getattr(cfg.qpu, 'qubits', 0),
-        T1=float(getattr(cfg.memory, 'T1', 1e15)),
-        T2=float(getattr(cfg.memory, 'T2', 1e15)),
-        two_q_depolar_prob=getattr(cfg.qpu, 'two_q_depolar_prob', 0),
-        one_q_depolar_prob=getattr(cfg.qpu, 'one_q_depolar_prob', 0),
-        emission_fidelity=getattr(cfg.qpu, 'emission_fidelity', 1.0),
-        collection_efficiency=getattr(cfg.qpu, 'collection_efficiency', 1.0),
-        one_q_gate_duration=getattr(
-            cfg.gate_durations, 'one_q_gate_duration', 5000
+        n=require_cfg(cfg.qpu, 'num_qpu_nodes', 'qpu'),
+        num_qubits=require_cfg(cfg.qpu, 'qubits', 'qpu'),
+        T1=float(require_cfg(cfg.memory, 'T1', 'memory')),
+        T2=float(require_cfg(cfg.memory, 'T2', 'memory')),
+        two_q_depolar_prob=require_cfg(cfg.qpu, 'two_q_depolar_prob', 'qpu'),
+        one_q_depolar_prob=require_cfg(cfg.qpu, 'one_q_depolar_prob', 'qpu'),
+        emission_fidelity=require_cfg(cfg.qpu, 'emission_fidelity', 'qpu'),
+        collection_efficiency=require_cfg(cfg.qpu, 'collection_efficiency', 'qpu'),
+        one_q_gate_duration=require_cfg(
+            cfg.gate_durations, 'one_q_gate_duration', 'gate_durations'
         ),
-        two_q_gate_duration=getattr(
-            cfg.gate_durations, 'two_q_gate_duration', 107000
+        two_q_gate_duration=require_cfg(
+            cfg.gate_durations, 'two_q_gate_duration', 'gate_durations'
         ),
         fiber_depolar_rate=fiber_depolar_rate,
     )
@@ -93,6 +99,8 @@ def create_qpu_nodes(cfg, topology_data, fiber_depolar_rate):
 def create_bsm_nodes(cfg, topology_data):
     """Build the BSM nodes described by *topology_data*.
 
+    All BSM parameters are **required** from ``parameters.yml``.
+
     Returns
     -------
     tuple
@@ -100,9 +108,9 @@ def create_bsm_nodes(cfg, topology_data):
     """
     return create_bsm_nodes_from_topology(
         topology_data,
-        detection_window=getattr(cfg.bsm, 'detection_window', 4320000),
-        system_delay=getattr(cfg.bsm, 'system_delay', 0),
-        coupling_efficiency=getattr(cfg.bsm, 'coupling_efficiency', 1),
+        detection_window=require_cfg(cfg.bsm, 'detection_window', 'bsm'),
+        system_delay=require_cfg(cfg.bsm, 'system_delay', 'bsm'),
+        coupling_efficiency=require_cfg(cfg.bsm, 'coupling_efficiency', 'bsm'),
     )
 
 

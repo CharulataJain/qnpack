@@ -153,7 +153,7 @@ class DQCSimulation(Simulation):
                         qpu_info
                     )
 
-            cfg_util.ensure_epr_factory_defaults(self.cfg)
+            cfg_util.require_epr_factory_config(self.cfg)
 
             protocol = DQCProtocol(
                 self.cfg, network=net, qpu_nodes=qpu_nodes,
@@ -280,7 +280,11 @@ class DQCSimulation(Simulation):
 
         ns.set_qstate_formalism(QFormalism.KET)
 
+        from qnpack.common.config import MissingConfigError
+
         circuit_cfg = getattr(self.cfg, "circuit", None)
+        if circuit_cfg is None:
+            raise MissingConfigError("circuit", "mode")
         frontend, source = load_frontend(circuit_cfg, base_dir=self.base_dir)
         log.info(
             f"Frontend loaded: mode={circuit_cfg.mode!r}, source={source}"
@@ -366,9 +370,13 @@ class DQCSimulation(Simulation):
         from quantnet_mq.rpcclient import RPCClient
         from quantnet_mq.schema.models import Schema
 
+        from qnpack.common.config import MissingConfigError, require_cfg
+
         circuit_cfg = getattr(self.cfg, "circuit", None)
+        if circuit_cfg is None:
+            raise MissingConfigError("circuit", "mode")
         _, source = load_frontend(circuit_cfg, base_dir=self.base_dir)
-        mode = getattr(circuit_cfg, "mode", "cisco") if circuit_cfg else "cisco"
+        mode = require_cfg(circuit_cfg, "mode", "circuit")
         with open(source) as f:
             circuit_content = f.read()
 
