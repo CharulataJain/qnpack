@@ -16,6 +16,10 @@ Tket-specific (pytket Circuit / dist_commands.txt)
 
 QASM3-specific (QASM 3.0 files)
     ``_parse_qasm3_qubit_name``   — parse ``_qubit{QPU}_{idx}`` / ``_comm_qubit{QPU}_{N}``
+                                    (v1 Cisco naming)
+    ``_parse_qasm3v2_qubit_name`` — parse ``_qcomp_qpu_{N}_r{R}c{C}`` /
+                                    ``_qcomm_qpu_{N}_r{R}c{C}``
+                                    (v2 Cisco naming)
 """
 
 # ── Memory layout constants ──────────────────────────────────────────────────
@@ -120,7 +124,12 @@ def map_qubit_to_local(qubit, qpu_info=None, server_id=None):
 
 
 def _parse_qasm3_qubit_name(name):
-    """Parse a QASM 3.0 qubit name into (qpu_id, local_index, is_comm, original)."""
+    """Parse a QASM 3.0 v1 qubit name into (qpu_id, local_index, is_comm, original).
+
+    Handles legacy Cisco naming:
+        ``_qubit{QPU}_{data_idx}``      — data qubit
+        ``_comm_qubit{QPU}_{comm_idx}`` — communication qubit
+    """
     orig = name.strip()
     base = re.sub(r"\[\d+\]$", "", orig)
 
@@ -138,4 +147,55 @@ def _parse_qasm3_qubit_name(name):
         local_index = DATA_REGION_START + (data_idx - 1)
         return qpu_id, local_index, False, orig
 
-    raise ValueError(f"Cannot parse QASM 3.0 qubit name: {name!r}")
+    raise ValueError(f"Cannot parse QASM 3.0 v1 qubit name: {name!r}")
+
+
+def _parse_qasm3v2_qubit_name(name, comp_counters=None, comm_counters=None):
+    """Parse a QASM 3.0 v2 (Cisco) qubit name into (qpu_id, local_index, is_comm, original).
+
+    Handles the new Cisco naming convention:
+        ``_qcomp_qpu_{N}_r{R}c{C}``  — computation (data) qubit on QPU *N*
+        ``_qcomm_qpu_{N}_r{R}c{C}``  — communication qubit on QPU *N*
+
+    Parameters
+    ----------
+    name : str
+        The qubit register name (with or without trailing ``[idx]``).
+    comp_counters : dict | None
+        Mutable ``{qpu_id: next_offset}`` dict for sequentially assigning
+        data-region indices.  If ``None``, a fresh dict is created.
+    comm_counters : dict | None
+        Mutable ``{qpu_id: next_slot}`` dict for sequentially assigning
+        comm-region indices.  If ``None``, a fresh dict is created.
+
+    Returns
+    -------
+    tuple[int, int, bool, str]
+        ``(qpu_id, local_index, is_comm, original_name)``
+    """
+    if comp_counters is None:
+        comp_counters = {}
+    if comm_counters is None:
+        comm_counters = {}
+
+    orig = name.strip()
+    base = re.sub(r"\[\d+\]$", "", orig)
+
+    m = re.match(r"_qcomm_qpu_(\d+)_r(\d+)c(\d+)$", base)
+    if m:
+        # QASM uses 0-based QPU numbers; the simulation uses 1-based
+        qpu_id = int(m.group(1)) + 1
+        cidx = comm_counters.get(qpu_id, 0)
+        comm_counters[qpu_id] = cidx + 1
+        return qpu_id, cidx, True, orig
+
+    m = re.match(r"_qcomp_qpu_(\d+)_r(\d+)c(\d+)$", base)
+    if m:
+        # QASM uses 0-based QPU numbers; the simulation uses 1-based
+        qpu_id = int(m.group(1)) + 1
+        offset = comp_counters.get(qpu_id, 0)
+        local_index = DATA_REGION_START + offset
+        comp_counters[qpu_id] = offset + 1
+        return qpu_id, local_index, False, orig
+
+    raise ValueError(f"Cannot parse QASM 3.0 v2 qubit name: {name!r}")

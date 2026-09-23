@@ -1,19 +1,29 @@
 """
-frontends/qasm3_frontend.py
----------------------------
-QASM3Frontend: parser using openqasm3 AST — converts a QASM 3.0 file into the
-canonical per-QPU command IR. All labeling (entanglement_label, msg_exchange
-labels) is performed by the labeling layer (labeling/qasm_labeler.py).
+frontends/qasm3v2_frontend.py
+-----------------------------
+QASM3V2Frontend (Cisco frontend v2): parser using openqasm3 AST — converts a
+QASM 3.0 file that uses the *new* Cisco qubit-naming convention into the
+canonical per-QPU command IR.
 
-Op names emitted (canonical):
+Naming conventions handled
+--------------------------
+    _qcomp_qpu_{N}_r{R}c{C}   — computation (data) qubit on QPU *N*
+    _qcomm_qpu_{N}_r{R}c{C}   — communication qubit on QPU *N*
+    _clbit_qcomm_qpu_{N}_r{R}c{C}  — classical bit for a comm qubit
+
+This differs from the v1 frontend (``qasm3_frontend.py``) which expects:
+    _qubit{N}_{idx}       — data qubit
+    _comm_qubit{N}_{idx}  — communication qubit
+
+Op names emitted (canonical) are identical to v1:
     entanglement_gen  — Bell-pair generation (entanglement_label=None)
     measure           — intermediate measurement to classical bit
-    if_gate           — conditional gate (cross-QPU clbit; labeling converts
-                        these to msg_sender / msg_receiver pairs)
+    if_gate           — conditional gate (cross-QPU clbit)
     measure_final     — final output measurement
     gate              — local single- or two-qubit gate
 """
 
+import re
 import logging
 from collections import OrderedDict
 from openqasm3 import ast
@@ -25,60 +35,86 @@ from .util import DATA_REGION_START
 
 log = logging.getLogger(__name__)
 
+# ── Regex patterns for Cisco v2 naming ────────────────────────────────────────
+_RE_QCOMP = re.compile(r"_qcomp_qpu_(\d+)_r(\d+)c(\d+)$")
+_RE_QCOMM = re.compile(r"_qcomm_qpu_(\d+)_r(\d+)c(\d+)$")
 
-class QASM3CommandExtractor(QASMVisitor):
+
+class QASM3V2CommandExtractor(QASMVisitor):
     """
     AST visitor that extracts commands and organizes them by QPU.
+
+    Handles the Cisco v2 qubit-naming convention where computation qubits
+    are ``_qcomp_qpu_{N}_r{R}c{C}`` and communication qubits are
+    ``_qcomm_qpu_{N}_r{R}c{C}``.
     """
-    
+
     def __init__(self, output_reg_name='m'):
         self.qpu_commands = {}
-        self.qubit_to_qpu = {}  # Maps qubit names to QPU IDs
+        self.qubit_to_qpu = {}        # reg_name  -> QPU ID (int)
+        self.qubit_local_idx = {}     # reg_name  -> local memory index
         self.measure_qubits = OrderedDict()
         self.num_output_bits = 0
         self.output_reg_name = output_reg_name
         self.global_idx = 0
+        # Per-QPU counters for sequential local-index assignment
+        self._comm_counter = {}       # {qpu_id: next_comm_slot}
+        self._comp_counter = {}       # {qpu_id: next_data_offset}
         super().__init__()
-    
+
+    # ── Declaration visitors ──────────────────────────────────────────────────
+
     def visit_QubitDeclaration(self, node):
-        """Extract qubit declarations and map to QPUs."""
+        """Extract qubit declarations and map to QPUs.
+
+        Recognises the Cisco v2 naming convention:
+            ``_qcomp_qpu_{N}_r{R}c{C}``  — computation (data) qubit
+            ``_qcomm_qpu_{N}_r{R}c{C}``  — communication qubit
+        """
         if hasattr(node, 'qubit'):
             qubit_node = node.qubit
             if hasattr(qubit_node, 'name'):
                 reg_name = qubit_node.name
-                
-                # Parse QPU ID from qubit name like _qubit1_2 or _comm_qubit1_1
-                if reg_name.startswith('_qubit') or reg_name.startswith('_comm_qubit'):
-                    parts = reg_name.split('_')
-                    # Extract QPU ID from name
-                    for part in parts:
-                        if part.startswith('qubit') and len(part) > 5:
-                            try:
-                                qpu_id = int(part[5:].split('_')[0])
-                                self.qubit_to_qpu[reg_name] = qpu_id
-                                if qpu_id not in self.qpu_commands:
-                                    self.qpu_commands[qpu_id] = []
-                                
-                                # Track data qubits for measurement
-                                if reg_name.startswith('_qubit'):
-                                    data_idx_str = reg_name.split('_')[-1]
-                                    try:
-                                        data_idx = int(data_idx_str)
-                                        local_pos = DATA_REGION_START + (data_idx - 1)
-                                        self.measure_qubits.setdefault(qpu_id, []).append(local_pos)
-                                    except ValueError:
-                                        pass
-                                break
-                            except (ValueError, IndexError):
-                                pass
-        
+
+                m_comp = _RE_QCOMP.match(reg_name)
+                m_comm = _RE_QCOMM.match(reg_name)
+
+                if m_comp:
+                    # QASM uses 0-based QPU numbers; the simulation uses 1-based
+                    qpu_id = int(m_comp.group(1)) + 1
+                    self.qubit_to_qpu[reg_name] = qpu_id
+                    self.qpu_commands.setdefault(qpu_id, [])
+                    # Sequential data-region index for this QPU
+                    offset = self._comp_counter.get(qpu_id, 0)
+                    local_idx = DATA_REGION_START + offset
+                    self._comp_counter[qpu_id] = offset + 1
+                    self.qubit_local_idx[reg_name] = local_idx
+                    # Track data qubits for final measurement
+                    self.measure_qubits.setdefault(qpu_id, []).append(local_idx)
+
+                elif m_comm:
+                    # QASM uses 0-based QPU numbers; the simulation uses 1-based
+                    qpu_id = int(m_comm.group(1)) + 1
+                    self.qubit_to_qpu[reg_name] = qpu_id
+                    self.qpu_commands.setdefault(qpu_id, [])
+                    # Sequential comm-region index for this QPU
+                    cidx = self._comm_counter.get(qpu_id, 0)
+                    self.qubit_local_idx[reg_name] = cidx
+                    self._comm_counter[qpu_id] = cidx + 1
+
+                else:
+                    log.warning(
+                        f"[qasm3v2] Unrecognised qubit register name: {reg_name!r}; "
+                        f"expected _qcomp_qpu_* or _qcomm_qpu_* pattern."
+                    )
+
         return self.generic_visit(node)
-    
+
     def visit_ClassicalDeclaration(self, node):
         """Extract classical bit declarations."""
         if hasattr(node, 'identifier') and hasattr(node.identifier, 'name'):
             reg_name = node.identifier.name
-            # Track output register
+            # Track output register (first non-internal classical register)
             if not reg_name.startswith('_clbit'):
                 size = 1
                 if hasattr(node.type, 'size') and hasattr(node.type.size, 'value'):
@@ -86,21 +122,23 @@ class QASM3CommandExtractor(QASMVisitor):
                 if self.num_output_bits == 0:
                     self.num_output_bits = size
                     self.output_reg_name = reg_name
-        
+
         return self.generic_visit(node)
-    
+
     def visit_QuantumGateDefinition(self, node):
-        """Skip gate definitions - we only want gate applications."""
+        """Skip gate definitions — we only want gate applications."""
         return None  # Don't visit children
-    
+
+    # ── Gate visitor ──────────────────────────────────────────────────────────
+
     def visit_QuantumGate(self, node):
-        """Extract quantum gate operations - just read from AST."""
+        """Extract quantum gate operations — just read from AST."""
         self.global_idx += 1
-        
+
         # Extract gate name directly from AST
         gate_name = node.name.name
         gate_name = gate_name.lower()
-        
+
         # Extract qubits
         qubits = []
         qubit_names = []
@@ -109,23 +147,22 @@ class QASM3CommandExtractor(QASMVisitor):
             if qubit_info:
                 qubits.append(qubit_info)
                 qubit_names.append(qubit_info['name'])
-        
+
         if not qubits:
             return self.generic_visit(node)
-        
+
         # Extract parameters directly from AST
         params = []
         if hasattr(node, 'arguments') and node.arguments:
             for arg in node.arguments:
                 param_val = self._eval_parameter(arg)
                 params.append(param_val)
-        
-        # Determine operation type and build command
+
         # Special handling for entanglement (2-qubit remote operation)
         if gate_name == 'entanglement' and len(qubits) >= 2:
             q0, q1 = qubits[0], qubits[1]
             qpu0_id, qpu1_id = q0['qpu_id'], q1['qpu_id']
-            
+
             self.qpu_commands.setdefault(qpu0_id, []).append({
                 "op": "entanglement_gen",
                 "role": "emitter",
@@ -142,7 +179,7 @@ class QASM3CommandExtractor(QASMVisitor):
                 "end_label": None,
                 "global_idx": self.global_idx,
             })
-            
+
             self.qpu_commands.setdefault(qpu1_id, []).append({
                 "op": "entanglement_gen",
                 "role": "peer",
@@ -159,10 +196,9 @@ class QASM3CommandExtractor(QASMVisitor):
                 "end_label": None,
                 "global_idx": self.global_idx,
             })
-        
+
         # Multi-qubit gates on same QPU
         elif len(qubits) >= 2:
-            # Check all qubits are on same QPU
             qpu_id = qubits[0]['qpu_id']
             if all(q['qpu_id'] == qpu_id for q in qubits):
                 local_indices = [q['local_idx'] for q in qubits]
@@ -179,7 +215,7 @@ class QASM3CommandExtractor(QASMVisitor):
                     "end_label": None,
                     "global_idx": self.global_idx,
                 })
-        
+
         # Single-qubit gates
         else:
             q = qubits[0]
@@ -196,32 +232,33 @@ class QASM3CommandExtractor(QASMVisitor):
                 "end_label": None,
                 "global_idx": self.global_idx,
             })
-        
+
         return self.generic_visit(node)
-    
+
+    # ── Measurement visitor ───────────────────────────────────────────────────
+
     def visit_QuantumMeasurementStatement(self, node):
         """Extract measurement operations."""
         self.global_idx += 1
-        
+
         # Extract qubit
         qubit_info = None
         if hasattr(node, 'measure') and hasattr(node.measure, 'qubit'):
             qubit_info = self._extract_qubit_info(node.measure.qubit)
-        
-        # Extract target bit - first with index to check if final
+
+        # Extract target bit — first with index to check if final
         bit_name_with_idx = None
         bit_name_no_idx = None
         if hasattr(node, 'target'):
             bit_name_with_idx = self._extract_bit_name(node.target, include_index=True)
             bit_name_no_idx = self._extract_bit_name(node.target, include_index=False)
-        
+
         if not qubit_info:
             return self.generic_visit(node)
-        
+
         # Determine if this is a final measurement or intermediate
-        # Final measurements go to the output register (e.g., 'm[0]', 'm[1]')
         is_final = bit_name_no_idx and bit_name_no_idx == self.output_reg_name
-        
+
         # Extract measurement index for final measurements
         m_idx = None
         if is_final and bit_name_with_idx and '[' in bit_name_with_idx:
@@ -235,12 +272,12 @@ class QASM3CommandExtractor(QASMVisitor):
             final_key = f"{self.output_reg_name}_{m_idx}"
 
         # For intermediate measurements, use register name without index
-        # (matches old regex parser behavior)
         clbit_for_cmd = bit_name_no_idx if not is_final else None
 
         log.debug(
-            f"[qasm3_frontend] visit_QuantumMeasurementStatement: "
-            f"bit_name={bit_name_with_idx!r}, is_final={is_final}, m_idx={m_idx}, final_key={final_key!r}"
+            f"[qasm3v2] visit_QuantumMeasurementStatement: "
+            f"bit_name={bit_name_with_idx!r}, is_final={is_final}, "
+            f"m_idx={m_idx}, final_key={final_key!r}"
         )
 
         cmd = {
@@ -256,23 +293,24 @@ class QASM3CommandExtractor(QASMVisitor):
             "end_label": None,
             "global_idx": self.global_idx,
         }
-        
+
         self.qpu_commands.setdefault(qubit_info['qpu_id'], []).append(cmd)
-        
+
         return self.generic_visit(node)
-    
+
+    # ── Reset visitor ─────────────────────────────────────────────────────────
+
     def visit_QuantumReset(self, node):
         """Extract reset operations."""
         self.global_idx += 1
-        
-        # Extract qubit
+
         qubit_info = None
         if hasattr(node, 'qubits') and node.qubits:
             qubit_info = self._extract_qubit_info(node.qubits)
-        
+
         if not qubit_info:
             return self.generic_visit(node)
-        
+
         cmd = {
             "op": "gate",
             "gate": "reset",
@@ -286,42 +324,41 @@ class QASM3CommandExtractor(QASMVisitor):
             "end_label": None,
             "global_idx": self.global_idx,
         }
-        
+
         self.qpu_commands.setdefault(qubit_info['qpu_id'], []).append(cmd)
-        
+
         return self.generic_visit(node)
-    
+
+    # ── Branching (if-gate) visitor ───────────────────────────────────────────
+
     def visit_BranchingStatement(self, node):
         """Extract conditional (if) statements."""
         self.global_idx += 1
-        
-        # Extract condition bit - use register name without index
-        # (matches old regex parser behavior)
+
+        # Extract condition bit — use register name without index
         clbit_name = None
         if hasattr(node, 'condition'):
             clbit_name = self._extract_bit_name(node.condition, include_index=False)
-        
+
         # Extract gate from if body
         if hasattr(node, 'if_block') and node.if_block:
             for stmt in node.if_block:
                 if isinstance(stmt, ast.QuantumGate):
                     gate_name = stmt.name.name if hasattr(stmt.name, 'name') else str(stmt.name)
                     gate_name = gate_name.lower()
-                    
-                    # Extract qubit
+
                     qubit_info = None
                     if stmt.qubits:
                         qubit_info = self._extract_qubit_info(stmt.qubits[0])
-                    
+
                     if not qubit_info:
                         continue
-                    
-                    # Extract parameters
+
                     params = []
                     if hasattr(stmt, 'arguments') and stmt.arguments:
                         for arg in stmt.arguments:
                             params.append(self._eval_parameter(arg))
-                    
+
                     self.qpu_commands.setdefault(qubit_info['qpu_id'], []).append({
                         "op": "if_gate",
                         "gate": gate_name,
@@ -336,87 +373,70 @@ class QASM3CommandExtractor(QASMVisitor):
                         "end_label": None,
                         "global_idx": self.global_idx,
                     })
-        
-        # Don't call generic_visit - we've already processed the if_block contents
-        # and don't want the gates inside to be visited again by visit_QuantumGate
-        return None
-    
-    def _extract_qubit_info(self, qubit_node):
-        """Extract qubit information including QPU ID and local index from AST."""
-        # Extract name from AST
-        name = qubit_node.name.name
 
-        # Extract index from AST. The structure is a list of lists of expressions.
-        # e.g., q[1] -> [[IntegerLiteral(1)]]
+        # Don't call generic_visit — we've already processed the if_block
+        return None
+
+    # ── Private helpers ───────────────────────────────────────────────────────
+
+    def _extract_qubit_info(self, qubit_node):
+        """Extract qubit information including QPU ID and local index from AST.
+
+        Uses the ``qubit_to_qpu`` and ``qubit_local_idx`` maps built during
+        :meth:`visit_QubitDeclaration`.
+        """
+        name = qubit_node.name.name
         index = qubit_node.indices[0][0].value
 
-        # Determine QPU ID from qubit registry
         qpu_id = self.qubit_to_qpu[name]
-
-        # Calculate local index based on naming convention
-        if name.startswith('_qubit'):
-            # Data qubit: _qubit{QPU}_{data_idx}
-            data_idx = int(name.split('_')[-1])
-            local_idx = DATA_REGION_START + (data_idx - 1)
-        elif name.startswith('_comm_qubit'):
-            # Communication qubit: _comm_qubit{QPU}_{comm_idx}
-            comm_idx = int(name.split('_')[-1])
-            local_idx = comm_idx - 1
-        else:
-            local_idx = index
+        local_idx = self.qubit_local_idx[name]
 
         return {
             'name': f"{name}[{index}]",
             'qpu_id': qpu_id,
             'local_idx': local_idx,
             'reg_name': name,
-            'index': index
+            'index': index,
         }
-    
+
     def _extract_bit_name(self, bit_node, include_index=True):
         """Extract classical bit name from different AST node types.
-        
+
         Parameters
         ----------
         bit_node : AST node
             The AST node representing the classical bit.
         include_index : bool
-            If True, include the index in the name (e.g., 'm[0]').
-            If False, return just the register name (e.g., '_clbit_comm_qubit1_1').
-            The old regex parser used register names without indices for
-            intermediate clbits in measure/if_gate commands.
+            If True, include the index in the name (e.g., ``'m[0]'``).
+            If False, return just the register name (e.g.,
+            ``'_clbit_qcomm_qpu_0_r0c0'``).
         """
         if isinstance(bit_node, ast.IndexedIdentifier):
-            # Handles `measure q -> c[0]`
             name = bit_node.name.name
             if include_index:
                 idx = bit_node.indices[0][0].value
                 return f"{name}[{idx}]"
             return name
         if isinstance(bit_node, ast.IndexExpression):
-            # Handles indexed bits in conditions like `if(c[0])`
             name = bit_node.collection.name
             if include_index:
                 idx = bit_node.index[0].value
                 return f"{name}[{idx}]"
             return name
         if isinstance(bit_node, ast.Identifier):
-            # Handles simple identifiers like `c`
             return bit_node.name
         if isinstance(bit_node, ast.BinaryExpression):
-            # Handles conditions like `if (c == 1)`, assumes bit is on the left
             return self._extract_bit_name(bit_node.lhs, include_index=include_index)
-        
+
         raise TypeError(f"Could not extract bit name from AST node type {type(bit_node)}")
-    
+
     def _eval_parameter(self, param_node):
         """Evaluate parameter expression to float (in units of pi)."""
         if hasattr(param_node, 'value'):
             return float(param_node.value)
-        
+
         # Handle unary expressions (e.g., -pi, -pi/2)
         if hasattr(param_node, 'expression') and hasattr(param_node, 'op'):
-            # This is a UnaryExpression
             inner_val = self._eval_parameter(param_node.expression)
             op = param_node.op.name if hasattr(param_node.op, 'name') else str(param_node.op)
             if op == '-':
@@ -428,14 +448,13 @@ class QASM3CommandExtractor(QASMVisitor):
             elif op == '!':
                 return 0.0 if inner_val else 1.0
             return inner_val
-        
-        # Handle binary operations (openqasm3 uses BinaryOperator enum)
+
+        # Handle binary operations
         if hasattr(param_node, 'op') and hasattr(param_node, 'lhs') and hasattr(param_node, 'rhs'):
             left = self._eval_parameter(param_node.lhs)
             right = self._eval_parameter(param_node.rhs)
-            # Use op.name to get the operator symbol (e.g., '/', '*', '+', '-')
             op = param_node.op.name if hasattr(param_node.op, 'name') else str(param_node.op)
-            
+
             if op == '/':
                 return left / right if right != 0 else 0
             elif op == '*':
@@ -444,19 +463,23 @@ class QASM3CommandExtractor(QASMVisitor):
                 return left + right
             elif op == '-':
                 return left - right
-        
+
         # Handle pi constant
         if hasattr(param_node, 'name'):
             name = str(param_node.name)
             if name == 'pi':
                 return 1.0  # In units of pi
-        
+
         return 0.0
 
 
-class QASM3Frontend(BaseFrontend):
-    """Parse a QASM 3.0 file into canonical per-QPU commands using openqasm3 AST.
-    
+class QASM3V2Frontend(BaseFrontend):
+    """Parse a QASM 3.0 file (Cisco v2 naming) into canonical per-QPU commands.
+
+    This frontend handles the new Cisco qubit-naming convention where
+    computation qubits are ``_qcomp_qpu_{N}_r{R}c{C}`` and communication
+    qubits are ``_qcomm_qpu_{N}_r{R}c{C}``.
+
     Results are read directly from QPU protocol state after the run
     (``needs_datacollector=False``).
     """
@@ -468,14 +491,14 @@ class QASM3Frontend(BaseFrontend):
         self._output_reg_name = 'm'
         self._extractor = None
 
-    # ── BaseFrontend abstract property ───────────────────────────────────────
+    # ── BaseFrontend abstract property ────────────────────────────────────────
 
     @property
     def needs_datacollector(self):
-        """QASM3Frontend reads results directly from QPU protocol state."""
+        """QASM3V2Frontend reads results directly from QPU protocol state."""
         return False
 
-    # ── Source loading ───────────────────────────────────────────────────────
+    # ── Source loading ────────────────────────────────────────────────────────
 
     def load(self, qasm_file):
         """Load and pre-scan a QASM 3.0 file using AST parser.
@@ -486,66 +509,59 @@ class QASM3Frontend(BaseFrontend):
             Path to the QASM 3.0 source file.
         """
         super().load(qasm_file)
-        
-        # Read file
+
         with open(qasm_file, 'r') as f:
             qasm_str = f.read()
-        
-        # Parse AST
+
         ast_tree = parse(qasm_str)
 
-        
-        # Extract metadata
-        extractor = QASM3CommandExtractor()
+        extractor = QASM3V2CommandExtractor()
         extractor.visit(ast_tree)
-        
+
         self._measure_qubits = extractor.measure_qubits
         self._num_output_bits = extractor.num_output_bits
         self._output_reg_name = extractor.output_reg_name
-        
-        log.info(f"[QASM3Frontend] Loaded {qasm_file}: "
+
+        log.info(f"[QASM3V2Frontend] Loaded {qasm_file}: "
                  f"output_bits={self._num_output_bits}, reg='{self._output_reg_name}', "
                  f"measure_qubits={dict(self._measure_qubits)}")
 
-    # ── Metadata helpers ─────────────────────────────────────────────────────
+    # ── Metadata helpers ──────────────────────────────────────────────────────
 
     def get_measure_qubits(self, extra_context=None):
         """Return the measure_qubits dict extracted by :meth:`load`."""
         return self._measure_qubits
 
-    # ── Parsing ──────────────────────────────────────────────────────────────
+    # ── Parsing ───────────────────────────────────────────────────────────────
 
     def parse(self, qpu_info=None):
-        """Parse the previously loaded QASM 3.0 file using AST and return ``{qpu_id: [cmd, …]}``.
+        """Parse the previously loaded QASM 3.0 file and return ``{qpu_id: [cmd, …]}``.
 
         Parameters
         ----------
         qpu_info : dict | None
-            Unused for QASM3 — qubit ownership is encoded in qubit names.
+            Unused — qubit ownership is encoded in qubit names.
 
         Returns
         -------
         dict[int, list[dict]]
         """
-        # Read file
         with open(self._source, 'r') as f:
             qasm_str = f.read()
-        
-        # Parse AST
+
         ast_tree = parse(qasm_str)
-        
-        # Extract commands, passing the output_reg_name from load()
-        extractor = QASM3CommandExtractor(output_reg_name=self._output_reg_name)
+
+        extractor = QASM3V2CommandExtractor(output_reg_name=self._output_reg_name)
         extractor.visit(ast_tree)
-        
+
         # Sort commands by global index
         for qpu_id in extractor.qpu_commands:
             extractor.qpu_commands[qpu_id].sort(key=lambda x: x.get("global_idx", 0))
-        
+
         total = sum(len(v) for v in extractor.qpu_commands.values())
         log.debug(
-            f"[QASM3Frontend] Parsed {total} total commands — "
+            f"[QASM3V2Frontend] Parsed {total} total commands — "
             + ", ".join(f"QPU_{k}={len(v)}" for k, v in sorted(extractor.qpu_commands.items()))
         )
-        
+
         return extractor.qpu_commands

@@ -6,23 +6,28 @@ frontend instance and resolved source path for a given circuit config.
 
 Supported modes
 ---------------
-    'tket'   — dist_commands.txt or JSON schedule  (TketFrontend)
-    'cisco'  — QASM 3.0 file path                  (QASM3Frontend)
+    'tket'     — dist_commands.txt or JSON schedule  (TketFrontend)
+    'cisco'    — QASM 3.0 file path, v1 naming       (QASM3Frontend)
+    'cisco_v2' — QASM 3.0 file path, v2 naming       (QASM3V2Frontend)
+                 (``_qcomp_qpu_``/``_qcomm_qpu_`` register names)
 """
 
 import os
 from .tket_frontend import TketFrontend
 from .qasm3_frontend import QASM3Frontend
+from .qasm3v2_frontend import QASM3V2Frontend
 
 _REGISTRY = {
-    "tket":  TketFrontend,
-    "cisco": QASM3Frontend,
+    "tket":     TketFrontend,
+    "cisco":    QASM3Frontend,
+    "cisco_v2": QASM3V2Frontend,
 }
 
 # Maps mode -> which circuit_cfg field holds the source path
 _SOURCE_FIELD = {
-    "tket":  "dist_commands_file",
-    "cisco": "qasm_file",
+    "tket":     "dist_commands_file",
+    "cisco":    "qasm_file",
+    "cisco_v2": "qasm_file",
 }
 
 
