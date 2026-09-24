@@ -33,6 +33,15 @@ from qnpack.dqc.models.switch_node_builder import (
 
 log = logging.getLogger(__name__)
 
+#: Formalism names accepted in parameters.yml under ``sim.formalism``.
+SUPPORTED_FORMALISMS = {
+    "KET": QFormalism.KET,
+    "STAB": QFormalism.STAB,
+}
+
+#: Used when ``sim.formalism`` is absent from the config file.
+DEFAULT_FORMALISM = "KET"
+
 
 def _resolve_measure_qubits(circuit_cfg):
     """Parse measure_qubits from config, or return None to auto-derive.
@@ -211,6 +220,7 @@ class DQCSimulation(Simulation):
             detection_window=getattr(self.cfg.bsm, 'detection_window', 4320000),
             system_delay=getattr(self.cfg.bsm, 'system_delay', 0),
             coupling_efficiency=getattr(self.cfg.bsm, 'coupling_efficiency', 1),
+            deterministic_bsm=getattr(self.cfg.bsm, 'deterministic_bsm', False),
         )
         for node in bsm_nodes:
             net.add_node(node)
@@ -924,7 +934,20 @@ class DQCSimulation(Simulation):
         import itertools
         from collections import Counter
 
-        ns.set_qstate_formalism(QFormalism.KET)
+        # Quantum state formalism (parameters.yml → sim.formalism):
+        #   KET  — full state vector; supports non-Clifford gates (Rz, CU1).
+        #   STAB — stabilizer/CHP; scales to far more qubits, Clifford only.
+        _sim_cfg = getattr(self.cfg, "sim", None)
+        formalism_name = str(
+            getattr(_sim_cfg, "formalism", DEFAULT_FORMALISM)
+        ).strip().upper()
+        if formalism_name not in SUPPORTED_FORMALISMS:
+            raise ValueError(
+                f"Unsupported sim.formalism {formalism_name!r}; "
+                f"expected one of {sorted(SUPPORTED_FORMALISMS)}"
+            )
+        ns.set_qstate_formalism(SUPPORTED_FORMALISMS[formalism_name])
+        log.info(f"Quantum state formalism: {formalism_name}")
 
         circuit_cfg = getattr(self.cfg, "circuit", None)
 

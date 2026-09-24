@@ -45,13 +45,165 @@ from netsquid.components.instructions import (
     INSTR_TOFFOLI,
     INSTR_CCX,
 )
+from netsquid.components.qdetector import GatedQuantumDetector
+from netsquid.qubits.qubitapi import gmeasure, discard
+from netsquid.qubits import operators as ops
+from netsquid.qubits.stabtools import StabRepr
+import netsquid as ns
+
 from qnpack.common.logging import setup_logging
 from qnpack.common.config import Config
 from qnpack.oneG.lib.operators import create_meas_ops
-from qnpack.oneG.lib.models import BSMGatedQuantumDetector
+from qnpack.APE.lib.custom_qubitapi import my_gmeasure, my_measure
 
 
 log = logging.getLogger(__name__)
+
+
+def _is_stabilizer_formalism():
+    """Return True when the active NetSquid formalism is stabilizer (STAB)."""
+    try:
+        return ns.get_qstate_formalism() is StabRepr
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# BSM detector
+# ---------------------------------------------------------------------------
+
+class DQCBSMGatedQuantumDetector(GatedQuantumDetector):
+    """BSM detector for DQC supporting both the KET and STAB formalisms.
+
+    Under KET the standard ``create_meas_ops()`` POVM is used.  That POVM is
+    not expressible in the stabilizer formalism, so under STAB the detector
+    falls back to a Clifford BSM circuit — see :meth:`_bsm_stab`.
+
+    Outcome encoding is shared by both paths and is what the DQC protocols
+    expect:
+
+    - ``[0]``, ``[1]`` — BSM failure
+    - ``[2]``, ``[3]`` — BSM success (with differing Pauli corrections)
+
+    Parameters
+    ----------
+    deterministic_bsm : bool
+        STAB-only. ``True`` selects the always-succeeding CNOT+H+Z-measure
+        circuit; ``False`` selects the 50%-success Pauli-measurement BSM.
+        Must match the correction logic in the entanglement workers, which
+        read the same ``cfg.bsm.deterministic_bsm`` setting.
+    coupling_efficiency : float
+        Probability (0 to 1) that an incoming photon is successfully detected.
+    """
+
+    def __init__(self, name, detection_window, coupling_efficiency=1, num_input_ports=1,
+                 num_output_ports=1, observable=ops.Z, meas_operators=None,
+                 system_delay=0., dead_time=0., models=None, output_meta=None,
+                 error_on_fail=False, properties=None, deterministic_bsm=False):
+        self.qin0_new_photon = False
+        self.qin1_new_photon = False
+        self.coupling_efficiency = coupling_efficiency
+        self.deterministic_bsm = deterministic_bsm
+        log.debug(f"BSM detector coupling efficiency: {self.coupling_efficiency}")
+        super().__init__(name, detection_window, num_input_ports, num_output_ports,
+                         observable, meas_operators, system_delay, dead_time,
+                         models, output_meta, error_on_fail, properties)
+
+    def _bsm_stab(self, q0, q1):
+        """Perform a Clifford Bell-state measurement for the STAB formalism.
+
+        Two circuits are available, selected by ``self.deterministic_bsm``:
+
+        Deterministic (``True``)
+            Standard CNOT + H + Z-measure.  Always succeeds, so the outcome
+            is ``2 + m2``: ``[2]`` means no X correction, ``[3]`` means the
+            peer must apply X.
+
+        Non-deterministic (``False``)
+            APE-style Pauli tensor measurements.  The first X⊗Z measurement
+            heralds success (``m1=0``, 50% of the time); on success a Z⊗X
+            measurement selects the correction and the outcome is ``2 + m2``.
+            On failure an X measurement on ``q0`` yields outcome ``m2``
+            (``[0]`` or ``[1]``), both of which the protocols treat as a
+            failed swap.
+
+        Returns
+        -------
+        list of int
+            Single-element outcome list, in the range 0-3.
+        float
+            Probability of the observed outcome.
+        """
+        if self.deterministic_bsm:
+            qapi.operate([q0, q1], ops.CNOT)
+            qapi.operate(q0, ops.H)
+
+            m1, prob1 = qapi.measure(q0, ops.Z)
+            m2, prob2 = qapi.measure(q1, ops.Z)
+
+            # Always success: m2=0 → [2] (no X correction), m2=1 → [3] (X).
+            m = 2 + m2
+            log.debug(f"Deterministic STAB BSM: m1={m1}, m2={m2} → outcome [{m}]")
+            return [m], prob1 * prob2
+
+        m1, prob1 = my_gmeasure([q0, q1], ops.X ^ ops.Z)
+
+        if m1 == 0:
+            # Heralded success — Z⊗X selects the correction.
+            m2, prob2 = my_gmeasure([q0, q1], ops.Z ^ ops.X)
+            m = 2 + m2
+        else:
+            # Heralded failure — measure out q0 and report [0]/[1].
+            m2, prob2 = my_measure(q0, ops.X)
+            m = m2
+
+        log.debug(f"Non-deterministic STAB BSM: m1={m1}, m2={m2} → outcome [{m}]")
+        return [m], prob1 * prob2
+
+    def photon_detected(self):
+        """Return True if the photon is detected, per the coupling efficiency."""
+        detected = random.random() < self.coupling_efficiency
+        if not detected:
+            log.debug("Photon is not detected by the detector")
+        return detected
+
+    def measure(self):
+        self.qin0_new_photon = False
+        self.qin1_new_photon = False
+
+        if len(self._qubits_per_port["qin0"]) > 0 and self.photon_detected():
+            self.qin0_new_photon = True
+        if len(self._qubits_per_port["qin1"]) > 0 and self.photon_detected():
+            self.qin1_new_photon = True
+
+        if self.qin0_new_photon and self.qin1_new_photon:
+            _, q0, _ = self._qubits_per_port["qin0"][-1]   # Left node qubit
+            _, q1, _ = self._qubits_per_port["qin1"][-1]   # Right node qubit
+
+            if (q0.qstate is None or q1.qstate is None
+                    or q0.qstate.qrepr.num_qubits != q1.qstate.qrepr.num_qubits):
+                self.ports["cout0"].tx_output([])
+                return
+
+            if _is_stabilizer_formalism():
+                m, prob = self._bsm_stab(q0, q1)
+            else:
+                m, prob = gmeasure([q0, q1], meas_operators=create_meas_ops())
+
+            discard(q0)
+            discard(q1)
+
+            log.debug(f"m={m} with prob {prob}.")
+            self.ports["cout0"].tx_output(m)
+        else:
+            log.debug("Only one/both photons are not detected by BSM")
+            self.ports["cout0"].tx_output("Only one photon is detected in BSM")
+
+
+#: The DQC detector supersedes :class:`qnpack.oneG.lib.models.BSMGatedQuantumDetector`,
+#: which is KET-only.  Aliased for call sites that import the old name.
+BSMGatedQuantumDetector = DQCBSMGatedQuantumDetector
+
 
 # ---------------------------------------------------------------------------
 # Noise models
@@ -425,6 +577,7 @@ def create_gated_bsm_nodes(
     detection_window: int = 4320000,
     system_delay: int = 0,
     coupling_efficiency: float = 1,
+    deterministic_bsm: bool = False,
 ):
     """Create *n* generic BSM nodes with gated quantum detectors.
 
@@ -443,6 +596,9 @@ def create_gated_bsm_nodes(
         System delay (ns).
     coupling_efficiency : float
         Detector coupling efficiency.
+    deterministic_bsm : bool
+        STAB-only BSM circuit selector; see
+        :class:`DQCBSMGatedQuantumDetector`.
 
     Returns
     -------
@@ -476,6 +632,7 @@ def create_gated_bsm_nodes(
             num_output_ports=2,
             coupling_efficiency=coupling_efficiency,
             error_on_fail=False,
+            deterministic_bsm=deterministic_bsm,
         )
         node.add_subcomponent(bsm_detector)
 
@@ -492,6 +649,7 @@ def create_bsm_nodes_from_topology(
     detection_window: int = 4320000,
     system_delay: int = 0,
     coupling_efficiency: float = 1,
+    deterministic_bsm: bool = False,
 ):
     """Create BSM nodes based on topology JSON data.
 
@@ -516,6 +674,9 @@ def create_bsm_nodes_from_topology(
         System delay (ns).
     coupling_efficiency : float
         Detector coupling efficiency.
+    deterministic_bsm : bool
+        STAB-only BSM circuit selector; see
+        :class:`DQCBSMGatedQuantumDetector`.
 
     Returns
     -------
@@ -611,6 +772,7 @@ def create_bsm_nodes_from_topology(
             num_output_ports=2,
             coupling_efficiency=coupling_efficiency,
             error_on_fail=False,
+            deterministic_bsm=deterministic_bsm,
         )
         node.add_subcomponent(bsm_detector)
 

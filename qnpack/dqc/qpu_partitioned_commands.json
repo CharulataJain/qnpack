@@ -1,0 +1,504 @@
+{
+  "1": [
+    {
+      "op": "gate",
+      "gate": "rz",
+      "qubit": 21,
+      "qubits": [
+        21
+      ],
+      "params": [
+        0.5
+      ],
+      "original_qubits": [
+        "_qubit1_2[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 1
+    },
+    {
+      "op": "gate",
+      "gate": "sx",
+      "qubit": 21,
+      "qubits": [
+        21
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit1_2[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 2
+    },
+    {
+      "op": "gate",
+      "gate": "rz",
+      "qubit": 21,
+      "qubits": [
+        21
+      ],
+      "params": [
+        0.5
+      ],
+      "original_qubits": [
+        "_qubit1_2[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 3
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 21,
+      "qubits": [
+        21,
+        22
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit1_2[0]",
+        "_qubit1_3[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 4
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 22,
+      "qubits": [
+        22,
+        20
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit1_3[0]",
+        "_qubit1_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 5
+    },
+    {
+      "op": "entanglement_gen",
+      "role": "emitter",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit1_1[0]",
+        "_comm_qubit2_1[0]"
+      ],
+      "is_remote": true,
+      "peer_qpu_id": 2,
+      "peer_qubit": 0,
+      "entanglement_label": 0,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 6
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 20,
+      "qubits": [
+        20,
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit1_1[0]",
+        "_comm_qubit1_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 7
+    },
+    {
+      "op": "measure_final",
+      "qubit": 21,
+      "qubits": [
+        21
+      ],
+      "clbit": null,
+      "final_key": "c_0",
+      "params": [],
+      "original_qubits": [
+        "_qubit1_2[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 8
+    },
+    {
+      "op": "measure_final",
+      "qubit": 22,
+      "qubits": [
+        22
+      ],
+      "clbit": null,
+      "final_key": "c_1",
+      "params": [],
+      "original_qubits": [
+        "_qubit1_3[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 9
+    },
+    {
+      "op": "measure",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "clbit": "_clbit_comm_qubit1_1",
+      "final_key": null,
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit1_1[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 10
+    },
+    {
+      "op": "gate",
+      "gate": "reset",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit1_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 11
+    },
+    {
+      "op": "msg_sender",
+      "label": "msg_exchange_0",
+      "msg_type": "msg_exchange",
+      "clbit": "_clbit_comm_qubit1_1",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "original_qubits": [
+        "_comm_qubit1_1[0]"
+      ],
+      "params": [],
+      "peer_qpu_id": 2,
+      "is_remote": true,
+      "final_key": null,
+      "start_label": null,
+      "end_label": "msg_exchange_0",
+      "if_gate": null,
+      "global_idx": 12
+    },
+    {
+      "op": "msg_receiver",
+      "label": "msg_exchange_1",
+      "msg_type": "msg_exchange",
+      "clbit": "_clbit_comm_qubit2_1",
+      "qubit": 20,
+      "qubits": [
+        20
+      ],
+      "original_qubits": [
+        "_qubit1_1[0]"
+      ],
+      "params": [],
+      "peer_qpu_id": 2,
+      "is_remote": true,
+      "final_key": null,
+      "start_label": null,
+      "end_label": "msg_exchange_1",
+      "if_gate": {
+        "gate": "z",
+        "qubit": 20,
+        "qubits": [
+          20
+        ],
+        "params": [],
+        "clbit": "_clbit_comm_qubit2_1"
+      },
+      "global_idx": 21
+    },
+    {
+      "op": "measure_final",
+      "qubit": 20,
+      "qubits": [
+        20
+      ],
+      "clbit": null,
+      "final_key": "c_2",
+      "params": [],
+      "original_qubits": [
+        "_qubit1_1[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 22
+    }
+  ],
+  "2": [
+    {
+      "op": "entanglement_gen",
+      "role": "peer",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit1_1[0]",
+        "_comm_qubit2_1[0]"
+      ],
+      "is_remote": true,
+      "peer_qpu_id": 1,
+      "peer_qubit": 0,
+      "entanglement_label": 0,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 6
+    },
+    {
+      "op": "msg_receiver",
+      "label": "msg_exchange_0",
+      "msg_type": "msg_exchange",
+      "clbit": "_clbit_comm_qubit1_1",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "original_qubits": [
+        "_comm_qubit2_1[0]"
+      ],
+      "params": [],
+      "peer_qpu_id": 1,
+      "is_remote": true,
+      "final_key": null,
+      "start_label": null,
+      "end_label": "msg_exchange_0",
+      "if_gate": {
+        "gate": "x",
+        "qubit": 0,
+        "qubits": [
+          0
+        ],
+        "params": [],
+        "clbit": "_clbit_comm_qubit1_1"
+      },
+      "global_idx": 12
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 0,
+      "qubits": [
+        0,
+        21
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit2_1[0]",
+        "_qubit2_2[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 13
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 21,
+      "qubits": [
+        21,
+        22
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit2_2[0]",
+        "_qubit2_3[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 14
+    },
+    {
+      "op": "measure_final",
+      "qubit": 21,
+      "qubits": [
+        21
+      ],
+      "clbit": null,
+      "final_key": "c_3",
+      "params": [],
+      "original_qubits": [
+        "_qubit2_2[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 15
+    },
+    {
+      "op": "gate",
+      "gate": "h",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit2_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 16
+    },
+    {
+      "op": "gate",
+      "gate": "cx",
+      "qubit": 22,
+      "qubits": [
+        22,
+        20
+      ],
+      "params": [],
+      "original_qubits": [
+        "_qubit2_3[0]",
+        "_qubit2_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 17
+    },
+    {
+      "op": "measure_final",
+      "qubit": 22,
+      "qubits": [
+        22
+      ],
+      "clbit": null,
+      "final_key": "c_4",
+      "params": [],
+      "original_qubits": [
+        "_qubit2_3[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 18
+    },
+    {
+      "op": "measure_final",
+      "qubit": 20,
+      "qubits": [
+        20
+      ],
+      "clbit": null,
+      "final_key": "c_5",
+      "params": [],
+      "original_qubits": [
+        "_qubit2_1[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 19
+    },
+    {
+      "op": "measure",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "clbit": "_clbit_comm_qubit2_1",
+      "final_key": null,
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit2_1[0]"
+      ],
+      "is_remote": false,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 20
+    },
+    {
+      "op": "msg_sender",
+      "label": "msg_exchange_1",
+      "msg_type": "msg_exchange",
+      "clbit": "_clbit_comm_qubit2_1",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "original_qubits": [
+        "_comm_qubit2_1[0]"
+      ],
+      "params": [],
+      "peer_qpu_id": 1,
+      "is_remote": true,
+      "final_key": null,
+      "start_label": null,
+      "end_label": "msg_exchange_1",
+      "if_gate": null,
+      "global_idx": 21
+    },
+    {
+      "op": "gate",
+      "gate": "reset",
+      "qubit": 0,
+      "qubits": [
+        0
+      ],
+      "params": [],
+      "original_qubits": [
+        "_comm_qubit2_1[0]"
+      ],
+      "is_remote": false,
+      "final_key": null,
+      "start_label": null,
+      "end_label": null,
+      "global_idx": 23
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+noise_label,two_q_depolar_prob,one_q_depolar_prob,emission_fidelity,collection_efficiency,T1,T2,one_q_gate_duration,two_q_gate_duration,photon_loss,init_photon_loss,fiber_depolar_rate,run,bitstring,sim_duration_s,avg_entanglement_time_s,meas_0,meas_1,meas_2,meas_3,meas_4,meas_5,meas_6,meas_7
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,0,10001111,0.0101784,,1,0,0,0,1,1,1,1
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,1,10101100,0.0101784,,1,0,1,0,1,1,0,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,2,11100000,0.0101784,,1,1,1,0,0,0,0,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,3,00000100,0.0101784,,0,0,0,0,0,1,0,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,4,01010010,0.0101784,,0,1,0,1,0,0,1,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,5,00001100,0.0101784,,0,0,0,0,1,1,0,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,6,01010010,0.0101784,,0,1,0,1,0,0,1,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,7,10001000,0.0101784,,1,0,0,0,1,0,0,0
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,8,00100101,0.0101784,,0,0,1,0,0,1,0,1
+"Memory(T1=1e15ns, T2=1e15ns) | Fiber(depol=0) | Gates(1q=5000ns, 2q=10700ns)",0,0,1,1,1e15,1e15,5000,10700,0,0,0,9,10011000,0.0101784,,1,0,0,1,1,0,0,0
