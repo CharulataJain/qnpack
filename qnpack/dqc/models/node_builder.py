@@ -287,18 +287,17 @@ class QPUNodeBuilder:
     Each node has a single QPU (QuantumProcessor) with both quantum and
     classical ports for communication.
 
+    All physical parameters are **required** — callers must supply every
+    value explicitly (no hardcoded defaults).
+
     Parameters
     ----------
     n : int
         Number of QPU nodes.
     num_qubits : int
         Default number of qubits per QPU (overridden by topology).
-    qpu_name_prefix : str
-        Prefix for QPU node names.
     T1, T2 : float
-        Memory coherence times (ns).  Defaults are effectively infinite.
-    depolar_rate : float
-        Global depolarization rate (legacy; prefer two_q/one_q_depolar_prob).
+        Memory coherence times (ns).
     two_q_depolar_prob : float
         Depolarization probability for 2-qubit gates.
     one_q_depolar_prob : float
@@ -313,30 +312,30 @@ class QPUNodeBuilder:
         Duration of 2-qubit gates (ns).
     fiber_depolar_rate : float
         Depolarization rate in the fiber channel.
+    qpu_name_prefix : str
+        Prefix for QPU node names.
     """
 
     def __init__(
         self,
         n: int,
-        num_qubits: int = 3,
+        num_qubits: int,
+        T1: float,
+        T2: float,
+        two_q_depolar_prob: float,
+        one_q_depolar_prob: float,
+        emission_fidelity: float,
+        collection_efficiency: float,
+        one_q_gate_duration: float,
+        two_q_gate_duration: float,
+        fiber_depolar_rate: float,
         qpu_name_prefix: str = "QPU",
-        T1: float = 1e15,
-        T2: float = 1e15,
-        depolar_rate: float = 0,
-        two_q_depolar_prob: float = 0,
-        one_q_depolar_prob: float = 0,
-        emission_fidelity: float = 1.0,
-        collection_efficiency: float = 1.0,
-        one_q_gate_duration: float = 5000,
-        two_q_gate_duration: float = 107000,
-        fiber_depolar_rate: float = 400,
     ):
         self.n = n
         self.num_qubits = num_qubits
         self.qpu_name_prefix = qpu_name_prefix
         self.T1 = T1
         self.T2 = T2
-        self.depolar_rate = depolar_rate
         self.two_q_depolar_prob = two_q_depolar_prob
         self.one_q_depolar_prob = one_q_depolar_prob
         self.emission_fidelity = emission_fidelity
@@ -364,26 +363,26 @@ class QPUNodeBuilder:
         phys_instr = [
             PhysicalInstruction(IInit(), duration=0, parallel=True),
             # --- 1-qubit gates ---
-            PhysicalInstruction(INSTR_H,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_X,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_Z,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_S,     duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_Z, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_X, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
-            PhysicalInstruction(INSTR_ROT_Y, duration=self.one_q_gate_duration, parallel=False, topology=None, q_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_H,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_X,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_Z,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_S,     duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_Z, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_X, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
+            PhysicalInstruction(INSTR_ROT_Y, duration=self.one_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_1q_noise),
             # --- 2-qubit gates ---
-            PhysicalInstruction(INSTR_CNOT,    duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
-            PhysicalInstruction(INSTR_CROT_Z,  duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CNOT,    duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CROT_Z,  duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
             # --- 3-qubit gates ---
-            PhysicalInstruction(INSTR_TOFFOLI, duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
-            PhysicalInstruction(INSTR_CCX,     duration=self.two_q_gate_duration, parallel=False, topology=None, q_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_TOFFOLI, duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
+            PhysicalInstruction(INSTR_CCX,     duration=self.two_q_gate_duration, parallel=False, topology=None, quantum_noise_model=_2q_noise),
             PhysicalInstruction(INSTR_EMIT,    duration=0, parallel=False, topology=None),
             PhysicalInstruction(
                 DQC_EMIT,
                 duration=0,
                 parallel=False,
                 topology=None,
-                q_noise_model=CustomEmissionNoiseModel(
+                quantum_noise_model=CustomEmissionNoiseModel(
                     emission_fidelity=self.emission_fidelity,
                     collection_efficiency=self.collection_efficiency,
                 ),
@@ -533,10 +532,14 @@ class QPUNodeBuilder:
             for bsm_res in bsm_result_in:
                 bsm_name = bsm_res["bsm_node"]
                 port_names.append(f"bsm_res_from_{bsm_name}")
+                # Dedicated EPR-factory result port (see epr_factory.py).
+                port_names.append(f"factory_bsm_res_from_{bsm_name}")
 
             for bsm_clk in bsm_clk_in:
                 bsm_name = bsm_clk["bsm_node"]
                 port_names.append(f"clk_from_{bsm_name}")
+                # Dedicated EPR-factory clock port (see epr_factory.py).
+                port_names.append(f"factory_clk_from_{bsm_name}")
 
             # Remove duplicates while preserving order
             seen = set()
@@ -574,10 +577,10 @@ class QPUNodeBuilder:
 
 def create_gated_bsm_nodes(
     n: int,
-    detection_window: int = 4320000,
-    system_delay: int = 0,
-    coupling_efficiency: float = 1,
-    deterministic_bsm: bool = False,
+    detection_window: int,
+    system_delay: int,
+    coupling_efficiency: float,
+    deterministic_bsm: bool,
 ):
     """Create *n* generic BSM nodes with gated quantum detectors.
 
@@ -585,6 +588,8 @@ def create_gated_bsm_nodes(
     - Two quantum input ports (left / right QPU)
     - Clock and BSM result output ports to QPUs
     - Controller / clock / comm ports
+
+    All parameters are **required** — no hardcoded defaults.
 
     Parameters
     ----------
@@ -614,6 +619,11 @@ def create_gated_bsm_nodes(
             "clk_to_right",
             "BSM_res_to_left",
             "BSM_res_to_right",
+            # Dedicated EPR-factory output ports (parallel classical plane)
+            "factory_clk_to_left",
+            "factory_clk_to_right",
+            "factory_BSM_res_to_left",
+            "factory_BSM_res_to_right",
             "ctrl_port",
             "clk_port",
             "comm_port",
@@ -646,15 +656,17 @@ def create_gated_bsm_nodes(
 
 def create_bsm_nodes_from_topology(
     topology_data,
-    detection_window: int = 4320000,
-    system_delay: int = 0,
-    coupling_efficiency: float = 1,
-    deterministic_bsm: bool = False,
+    detection_window: int,
+    system_delay: int,
+    coupling_efficiency: float,
+    deterministic_bsm: bool,
 ):
     """Create BSM nodes based on topology JSON data.
 
     Parses the topology to find BSMNode entries and creates gated BSM nodes
     with appropriate port names and wiring.
+
+    All parameters are **required** — no hardcoded defaults.
 
     Channel mapping from JSON:
     - quantum IN channel ID 1  → left_port  (left QPU)
@@ -754,6 +766,11 @@ def create_bsm_nodes_from_topology(
             "clk_to_right",
             "BSM_res_to_left",
             "BSM_res_to_right",
+            # Dedicated EPR-factory output ports (parallel classical plane)
+            "factory_clk_to_left",
+            "factory_clk_to_right",
+            "factory_BSM_res_to_left",
+            "factory_BSM_res_to_right",
             "ctrl_port",
             "clk_port",
             "comm_port",

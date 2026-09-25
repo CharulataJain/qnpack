@@ -40,6 +40,7 @@ from netsquid.qubits.stabtools import StabRepr
 from netsquid.components.qprogram import QuantumProgram
 
 from qnpack.dqc.models.instruction_set import GATE_OPS
+from qnpack.dqc.frontends.util import COMM_REGION_SIZE, DATA_REGION_START
 
 log = logging.getLogger(__name__)
 
@@ -445,8 +446,10 @@ class QPUProtocol(NodeProtocol):
 
         self.occupied_comm_qubits: set = set()
 
-        self.NUM_COMM_QUBITS = 20
-        self.FIRST_DATA_QUBIT = 20
+        # Memory layout constants shared with ..frontends.util; the topology
+        # decides how many positions exist, these only mark region starts.
+        self.NUM_COMM_QUBITS = COMM_REGION_SIZE
+        self.FIRST_DATA_QUBIT = DATA_REGION_START
         self._pending_msg_exchange: dict = {}
         self._pending_classical_msgs: dict = {}
         self.classical_memory: dict = {}
@@ -457,6 +460,22 @@ class QPUProtocol(NodeProtocol):
 
         # Persistent BSM workers: bsm_label -> EntanglementWorkerProtocol (or SwitchedEntanglementWorker)
         self._bsm_workers: dict = {}
+
+        self.epr_factory = None  # Set by DQCProtocol when factory is configured
+        # Pool-only execution (set by DQCProtocol): always serve remote ops
+        # from the pool, waiting for refill instead of an on-demand round.
+        self.pool_only = False
+        self.pool_drain_timeout_ns = 5e6
+        # Pool starvation diagnostics: wait count and total wait time.
+        self.pool_starvation_events = 0
+        self.pool_starvation_ns = 0.0
+
+        # ── Communication-qubit remapping ────────────────────────────────
+        # {compiler_position: actual_position}.  A pooled pair may sit on a
+        # different comm qubit than the compiler nominated; the redirect
+        # holds for the lifetime of the pair and is cleared on release.
+        # Only the link side of a pair resolves through this table.
+        self._comm_remap: dict = {}
 
     # ── Worker management ────────────────────────────────────────────────────
 
@@ -503,10 +522,286 @@ class QPUProtocol(NodeProtocol):
             worker.start()
         return self._bsm_workers[bsm_label]
 
+    # ── Communication-qubit remapping ────────────────────────────────────────
+
+    def _resolve_comm(self, pos):
+        """Translate a compiler-nominated comm position to the physical one.
+
+        Returns *pos* unchanged when no pooled pair has redirected it, so
+        this is safe to apply unconditionally at every comm-qubit use site.
+
+        Parameters
+        ----------
+        pos : int or None
+            Position as written by the compiler.
+
+        Returns
+        -------
+        int or None
+        """
+        if pos is None or not self._comm_remap:
+            return pos
+        return self._comm_remap.get(pos, pos)
+
+    def _resolve_comm_list(self, qubits):
+        """Apply :meth:`_resolve_comm` to every comm position in a list.
+
+        Data qubits (>= ``FIRST_DATA_QUBIT``) are never remapped.
+        """
+        if not self._comm_remap or not qubits:
+            return qubits
+        return [
+            self._resolve_comm(q)
+            if isinstance(q, int) and q < self.NUM_COMM_QUBITS else q
+            for q in qubits
+        ]
+
+    def _register_comm_remap(self, compiler_pos, actual_pos):
+        """Redirect *compiler_pos* to *actual_pos* until the pair is released.
+
+        Returns ``True`` when the redirect is now in force.
+
+        A mapping is refused while an earlier pair still occupies
+        *compiler_pos*.  Callers treat refusal as "cannot serve this request
+        from the pool" and fall back to on-demand generation.
+
+        Rebinding instead of refusing was tried, on the §3.1 argument that a
+        live entry is always held by a *data*-side episode, which takes its
+        physical qubit from ``actual_emit`` rather than from this table.
+        That argument is incomplete: the data side does not resolve its
+        *gate* operands here, but it does resolve ``free_comm_qubit`` when
+        releasing (see :meth:`handle_msg_sender`).  Overwriting the entry
+        therefore makes the release free the wrong physical qubit and leak
+        the right one — measured as 4 pool slots pinned per QPU on
+        ``grover_4_2qpu``, whose peak concurrency is 2, which then presents
+        as pool exhaustion.
+
+        Lifting this restriction needs the release path to carry the
+        physical position it consumed, rather than re-deriving it from a
+        table that may have moved on.
+        """
+        if compiler_pos is None or actual_pos is None:
+            return False
+        if compiler_pos == actual_pos:
+            # Pool landed on the nominated qubit; drop stale entries so the
+            # position resolves to itself.
+            self._comm_remap.pop(compiler_pos, None)
+            return True
+        existing = self._comm_remap.get(compiler_pos)
+        if existing is not None and existing != actual_pos:
+            log.debug(
+                f"[{self.node.name}] comm remap refused: {compiler_pos} is "
+                f"still redirected to {existing}"
+            )
+            return False
+        self._comm_remap[compiler_pos] = actual_pos
+        log.debug(
+            f"[{self.node.name}] comm remap: compiler position {compiler_pos} "
+            f"-> pooled qubit {actual_pos}"
+        )
+        return True
+
+    def _record_pool_consumption(self, ent_label, peer_qpu_id, pair):
+        """Cross-check that both QPUs consumed two halves of the same pair.
+
+        The two sides never negotiate: each picks the lowest available
+        ``slot_id`` from its own pool and trusts that the peer's rule
+        selected the counterpart.  That holds as long as both pools were
+        filled by the same schedule and drained the same number of times.
+
+        This verifies the assumption rather than relying on it.  The first
+        QPU to reach a label publishes what it took; the second compares.
+        A genuine pair satisfies two conditions:
+
+        - identical ``slot_id`` — they came from the same pre-fill round
+        - crossed positions — each side's ``comm_qubit_remote`` names the
+          other's ``comm_qubit_local``
+
+        A mismatch means the pools have desynchronised, which otherwise
+        surfaces only as wrong measurement outcomes much later.  This is a
+        diagnostic, not a recovery path: it logs loudly and leaves execution
+        untouched.
+        """
+        factory = self.epr_factory
+        if factory is None:
+            return
+
+        registry = getattr(factory, 'shared_consumption_log', None)
+        if registry is None:
+            return
+
+        record = {
+            'qpu_id': self.qpu_id,
+            'slot_id': pair.slot_id,
+            'local': pair.comm_qubit_local,
+            'remote': pair.comm_qubit_remote,
+        }
+        key = (ent_label, frozenset({self.qpu_id, peer_qpu_id}))
+        other = registry.get(key)
+        if other is None:
+            registry[key] = record
+            return
+
+        del registry[key]
+        crossed = (
+            other['local'] == record['remote']
+            and other['remote'] == record['local']
+        )
+        if other['slot_id'] != record['slot_id'] or not crossed:
+            log.error(
+                f"[{self.node.name}] POOL DESYNC on label={ent_label}: "
+                f"QPU_{record['qpu_id']} took slot={record['slot_id']} "
+                f"(local={record['local']}, remote={record['remote']}) but "
+                f"QPU_{other['qpu_id']} took slot={other['slot_id']} "
+                f"(local={other['local']}, remote={other['remote']})"
+            )
+
+    def _refill_can_progress(self, peer_qpu_id):
+        """Whether waiting for a refilled pair could ever succeed.
+
+        A slot can only be regenerated once the QPUs holding its storage
+        qubit have released it.  If every slot for this pairing is pinned by
+        eJPP episodes that are still live, no slot can be rebuilt until one
+        of those QPUs advances — and a QPU about to block here is waiting for
+        precisely the pair that would let it advance.
+
+        Both endpoints are inspected, because the deadlock is usually
+        *mutual*: on ``grover_4_2qpu`` with eight slots, each QPU ends up
+        holding four and waiting on the four its partner holds.  Checking
+        only the local side misses that entirely and the run burns down to
+        the timeout instead.
+
+        This is a depth shortfall, not a scheduling fault — the circuit
+        holds more pairs concurrently than the pool can store — so it is
+        worth reporting as the configuration problem it is.
+        """
+        factory = self.epr_factory
+        pool = factory.get_pool(peer_qpu_id) if factory is not None else None
+        if pool is None:
+            return False
+
+        cfg = factory.peer_configs.get(peer_qpu_id) or {}
+        storage = set(cfg.get("comm_positions") or ())
+        if not storage:
+            return False
+
+        # Storage qubits still in occupied_comm_qubits back consumed pairs
+        # that have not been measured out yet.
+        pinned = storage & self.occupied_comm_qubits
+
+        peer_proto = getattr(factory, 'peer_qpu_protocols', {}).get(peer_qpu_id)
+        if peer_proto is not None:
+            peer_cfg = (
+                peer_proto.epr_factory.peer_configs.get(self.qpu_id) or {}
+                if peer_proto.epr_factory is not None else {}
+            )
+            peer_storage = set(peer_cfg.get("comm_positions") or ())
+            # Slot i uses the i-th position on each side, so it is unusable
+            # if either endpoint still pins its qubit.
+            local_order = sorted(storage)
+            peer_order = sorted(peer_storage)
+            for idx, pos in enumerate(local_order):
+                if idx < len(peer_order) and (
+                    peer_order[idx] in peer_proto.occupied_comm_qubits
+                ):
+                    pinned.add(pos)
+
+        return len(pinned) < len(storage)
+
+    def _await_pooled_pair(self, peer_qpu_id, ent_label):
+        """Wait until a usable pooled pair exists for *peer_qpu_id*.
+
+        In pool-only mode there is no fallback: when the pool is dry the QPU
+        blocks here until continuous refill delivers.  This is deadlock-free
+        *provided refill can still make progress* — QPUs block individually
+        while the controller stays live and keeps servicing refill.  When
+        even that is impossible the wait is refused immediately rather than
+        burned down to the timeout.
+
+        The wait is otherwise bounded.  On timeout the run fails loudly
+        instead of hanging, so a scheduling bug stays diagnosable.
+
+        Returns
+        -------
+        bool
+            ``True`` when a pair became available.  ``False`` when waiting
+            is futile or the bound elapsed, leaving the caller to fail.
+        """
+        factory = self.epr_factory
+        if factory is None:
+            return False
+        if factory.has_usable_pair(peer_qpu_id, ns.sim_time()):
+            return True
+
+        if not self._refill_can_progress(peer_qpu_id):
+            cfg = factory.peer_configs.get(peer_qpu_id) or {}
+            depth = len(cfg.get("comm_positions") or ())
+            log.warning(
+                f"[{self.node.name}] POOL TOO SHALLOW for peer=QPU_{peer_qpu_id} "
+                f"at {ent_label}: all {depth} pool slot(s) are pinned by eJPP "
+                f"episodes that are still live, so none can be refilled until "
+                f"one of them finishes — which cannot happen while this QPU "
+                f"waits here. The circuit holds more pairs concurrently than "
+                f"the pool can store; raise epr_factory.pool_size_per_pair "
+                f"(and comm_qubits_reserved) above the circuit's peak "
+                f"concurrency. Serving this operation on demand instead."
+            )
+            return False
+
+        started = ns.sim_time()
+        deadline = started + self.pool_drain_timeout_ns
+        self.pool_starvation_events += 1
+
+        log.debug(
+            f"[{self.node.name}] Pool empty for peer=QPU_{peer_qpu_id} "
+            f"(label={ent_label}); waiting for refill"
+        )
+
+        while not factory.has_usable_pair(peer_qpu_id, ns.sim_time()):
+            remaining = deadline - ns.sim_time()
+            if remaining <= 0:
+                waited = ns.sim_time() - started
+                self.pool_starvation_ns += waited
+                log.error(
+                    f"[{self.node.name}] POOL STARVATION TIMEOUT: waited "
+                    f"{waited:.0f} ns for a pair with QPU_{peer_qpu_id} "
+                    f"(label={ent_label}) and none arrived. Refill cannot "
+                    f"keep up with demand, or a refill round is stuck. "
+                    f"Serving this operation on demand instead."
+                )
+                return False
+
+            yield (
+                self.await_signal(
+                    factory, factory.PAIR_GENERATED
+                ) | self.await_timer(duration=remaining)
+            )
+
+        waited = ns.sim_time() - started
+        self.pool_starvation_ns += waited
+        # Demand outran regeneration: pool too shallow or BSMs saturated.
+        log.warning(
+            f"[{self.node.name}] Pool starved for {waited:.0f} ns waiting on "
+            f"a pair with QPU_{peer_qpu_id} (label={ent_label})"
+        )
+        return True
+
+    def _release_comm_remap(self, actual_pos):
+        """Drop the remap entry pointing at *actual_pos* once it is freed."""
+        if actual_pos is None or not self._comm_remap:
+            return
+        for compiler_pos, mapped in list(self._comm_remap.items()):
+            if mapped == actual_pos:
+                del self._comm_remap[compiler_pos]
+                log.debug(
+                    f"[{self.node.name}] comm remap released: "
+                    f"{compiler_pos} -> {actual_pos}"
+                )
+
     # ── Qubit management ─────────────────────────────────────────────────────
 
     def find_free_comm_qubit(self, preferred: int, exclude: set = None) -> int:
-        """Find a free communication qubit, avoiding occupied and excluded positions.
+        """Find a free communication qubit, avoiding occupied, excluded, and factory-reserved positions.
 
         Parameters
         ----------
@@ -523,7 +818,12 @@ class QPUProtocol(NodeProtocol):
         if exclude is None:
             exclude = set()
 
-        unavailable = self.occupied_comm_qubits | exclude
+        # Include factory-reserved positions in unavailable set
+        factory_reserved = set()
+        if self.epr_factory is not None:
+            factory_reserved = self.epr_factory.reserved_positions
+
+        unavailable = self.occupied_comm_qubits | exclude | factory_reserved
 
         if preferred not in unavailable:
             return preferred
@@ -532,14 +832,16 @@ class QPUProtocol(NodeProtocol):
             if pos not in unavailable:
                 log.debug(
                     f"[{self.node.name}] Comm qubit {preferred} unavailable "
-                    f"(occupied={self.occupied_comm_qubits}, exclude={exclude}); "
+                    f"(occupied={self.occupied_comm_qubits}, exclude={exclude}, "
+                    f"factory_reserved={factory_reserved}); "
                     f"redirecting emission to free comm qubit {pos}"
                 )
                 return pos
 
         log.error(
             f"[{self.node.name}] All comm qubits 0-{self.NUM_COMM_QUBITS - 1} "
-            f"unavailable! occupied={self.occupied_comm_qubits}, exclude={exclude}. "
+            f"unavailable! occupied={self.occupied_comm_qubits}, exclude={exclude}, "
+            f"factory_reserved={factory_reserved}. "
             f"Defaulting to preferred={preferred} (may corrupt state)"
         )
         return preferred
@@ -598,14 +900,30 @@ class QPUProtocol(NodeProtocol):
 
     # ── Controller signalling ────────────────────────────────────────────────
 
-    def send_start_ready(self, start_label):
+    def send_start_ready(self, start_label, pool_ready=False):
+        """Announce readiness for *start_label* to the controller.
+
+        Parameters
+        ----------
+        start_label : hashable
+            The synchronisation label being awaited.
+        pool_ready : bool
+            ``True`` when this QPU holds a usable pre-generated EPR pair for
+            the label and could therefore skip the BSM round.  The
+            controller only skips the round when *all* parties report
+            ``True``.
+        """
         msg = Message(items={
             'type': 'start_ready',
             'start_label': start_label,
             'qpu_id': self.qpu_id,
+            'pool_ready': pool_ready,
         })
         self.comm_port.tx_output(msg)
-        log.debug(f"[{self.node.name}] Sent start_ready for label={start_label}")
+        log.debug(
+            f"[{self.node.name}] Sent start_ready for label={start_label} "
+            f"(pool_ready={pool_ready})"
+        )
 
     def send_end_ready(self, end_label):
         msg = Message(items={
@@ -710,6 +1028,9 @@ class QPUProtocol(NodeProtocol):
 
         if isinstance(qubits, int):
             qubits = [qubits]
+
+        # Redirect pooled comm qubits to their actual positions.
+        qubits = self._resolve_comm_list(qubits)
 
         g = gate_name.lower()
 
@@ -841,10 +1162,7 @@ class QPUProtocol(NodeProtocol):
                     INSTR_TOFFOLI, qubit_mapping=[qubits[0], qubits[1], qubits[2]])
                 yield self.await_program(self.node.qmemory)
             else:
-                # Decompose n-controlled X into a chain of Toffoli gates
-                # using n-2 ancilla-free recursive decomposition.
-                # For now, raise an error for >3 qubits until a proper
-                # decomposition is implemented and validated.
+                # Toffoli-chain decomposition for >3 qubits is not implemented.
                 raise NotImplementedError(
                     f"[{self.node.name}] {g} with {len(qubits)} qubits "
                     f"(>3) is not yet supported. Only 3-qubit CnX/MCX "
@@ -882,14 +1200,30 @@ class QPUProtocol(NodeProtocol):
         return result
 
     def _execute_measure(self, op):
-        """Measure a qubit into ``classical_memory[clbit]``."""
-        qubit = (
+        """Measure a qubit into ``classical_memory[clbit]``.
+
+        The position must be resolved through the comm-remap table.  A
+        pooled pair does not necessarily land on the position the compiler
+        nominated, and the QASM3 (cisco) frontend teleports via
+        ``measure`` + ``if_gate`` rather than the eJPP ops, so this is its
+        only release point.  Measuring the nominated position instead of
+        the pooled one reads an untouched qubit — a random bit — and leaves
+        the real half of the pair pinned forever, which then presents as
+        pool exhaustion.
+        """
+        nominated = (
             op.get('qubit') if op.get('qubit') is not None
             else op.get('qubits', [0])[0]
         )
+        qubit = (
+            self._resolve_comm(nominated)
+            if isinstance(nominated, int) and nominated < self.NUM_COMM_QUBITS
+            else nominated
+        )
         clbit = op['clbit']
         log.debug(
-            f"[{self.node.name}] _execute_measure ENTER qubit={qubit} clbit={clbit}"
+            f"[{self.node.name}] _execute_measure ENTER qubit={qubit} "
+            f"(nominated {nominated}) clbit={clbit}"
         )
 
         outcome = yield from self._measure_qubit(qubit)
@@ -898,20 +1232,33 @@ class QPUProtocol(NodeProtocol):
             f"[{self.node.name}] MEASURE qubit={qubit} clbit={clbit} → {outcome}"
         )
 
-        if qubit < self.NUM_COMM_QUBITS and qubit in self.occupied_comm_qubits:
+        if qubit < self.NUM_COMM_QUBITS:
             self.occupied_comm_qubits.discard(qubit)
+            # Measuring consumes the pair half, so retire its remap entry
+            # and return the slot to refill.
+            self._release_comm_remap(qubit)
             log.debug(
-                f"[{self.node.name}] measure: freed comm qubit "
-                f"{qubit} from occupied_comm_qubits"
+                f"[{self.node.name}] measure: freed comm qubit {qubit}"
             )
 
     def _execute_measure_final(self, op):
-        """Measure a qubit and store result in ``final_measurements[final_key]``."""
-        qubit = (
+        """Measure a qubit and store result in ``final_measurements[final_key]``.
+
+        Resolved through the comm-remap table for the same reason as
+        :meth:`_execute_measure`.  Final measurements normally name data
+        qubits, where this is a no-op, but a circuit is free to report a
+        comm position and must then read the pooled one.
+        """
+        nominated = (
             op.get('qubit') if op.get('qubit') is not None
             else op.get('qubits', [0])[0]
         )
-        final_key = op.get('final_key') or f"m_auto_{qubit}"
+        qubit = (
+            self._resolve_comm(nominated)
+            if isinstance(nominated, int) and nominated < self.NUM_COMM_QUBITS
+            else nominated
+        )
+        final_key = op.get('final_key') or f"m_auto_{nominated}"
         log.debug(
             f"[{self.node.name}] _execute_measure_final ENTER "
             f"qubit={qubit} final_key={final_key}"
@@ -980,7 +1327,9 @@ class QPUProtocol(NodeProtocol):
                 f"key={bell_key}, actual_emit={actual_emit}"
             )
 
-        cnot_data = cmd.get('cnot_data_qubit')
+        # Nested eJPP can make a comm qubit the data side, so resolve here
+        # too; a no-op for genuine data qubits.
+        cnot_data = self._resolve_comm(cmd.get('cnot_data_qubit'))
         if cnot_data is not None and actual_emit is not None:
             num_q = self.node.qmemory.num_positions
             prog = QuantumProgram(num_qubits=num_q)
@@ -992,7 +1341,7 @@ class QPUProtocol(NodeProtocol):
             self.classical_memory[clbit_name] = m
             log.debug(f"[{self.node.name}] msg_sender: CNOT+measure → m={m}")
         elif cmd.get('h_measure_qubit') is not None:
-            hq = cmd['h_measure_qubit']
+            hq = self._resolve_comm(cmd['h_measure_qubit'])
             num_q = self.node.qmemory.num_positions
             prog = QuantumProgram(num_qubits=num_q)
             prog.apply(INSTR_H, hq)
@@ -1005,15 +1354,16 @@ class QPUProtocol(NodeProtocol):
         else:
             m = self.classical_memory.get(clbit_name, 0)
 
-        free_q = cmd.get('free_comm_qubit')
+        free_q = self._resolve_comm(cmd.get('free_comm_qubit'))
         if free_q is None and bell_key is not None and actual_emit is not None:
             free_q = actual_emit
         if free_q is None:
-            free_q = (
+            free_q = self._resolve_comm(
                 cmd.get('qubits', [None])[0] if cmd.get('qubits') else cmd.get('qubit')
             )
         if free_q is not None and free_q in self.occupied_comm_qubits:
             self.occupied_comm_qubits.discard(free_q)
+            self._release_comm_remap(free_q)
             log.debug(
                 f"[{self.node.name}] msg_sender: freed qubit "
                 f"{free_q} from occupied_comm_qubits"
@@ -1120,15 +1470,16 @@ class QPUProtocol(NodeProtocol):
         if if_gate is not None:
             yield from self._execute_if_gate(if_gate)
 
-        mark_q = cmd.get('mark_comm_occupied')
+        mark_q = self._resolve_comm(cmd.get('mark_comm_occupied'))
         if mark_q is not None:
             self.occupied_comm_qubits.add(mark_q)
             log.debug(
                 f"[{self.node.name}] msg_receiver: marked qubit {mark_q} as occupied"
             )
-        free_q = cmd.get('free_comm_qubit')
+        free_q = self._resolve_comm(cmd.get('free_comm_qubit'))
         if free_q is not None:
             self.occupied_comm_qubits.discard(free_q)
+            self._release_comm_remap(free_q)
             log.debug(
                 f"[{self.node.name}] msg_receiver: freed qubit {free_q}"
             )
@@ -1147,10 +1498,15 @@ class QPUProtocol(NodeProtocol):
     # ── EJPP handlers ────────────────────────────────────────────────────────
 
     def handle_ejpp_start_data(self, op):
-        """EJPP start correction — data QPU side."""
+        """EJPP start correction — data QPU side.
+
+        The payload qubit is resolved through the remap table because it may
+        itself be a pooled comm qubit: in chained eJPP the link half of one
+        pair becomes the data side of the next.
+        """
         label = op['label']
         start_label = op['start_label']
-        qubit = op['qubit']
+        qubit = self._resolve_comm(op['qubit'])
         clbit = op['clbit']
         peer_id = op['peer_qpu_id']
 
@@ -1182,10 +1538,18 @@ class QPUProtocol(NodeProtocol):
         yield from self.handle_msg_exchange(send_op)
 
     def handle_ejpp_start_link(self, op):
-        """EJPP start correction — link QPU side."""
+        """EJPP start correction — link QPU side.
+
+        This QPU holds the link-register half of the Bell pair.  The remap
+        registered at consumption time (see the ``entanglement_gen``
+        handler) redirects the compiler's nominated comm qubit to wherever
+        the pooled pair actually lives, keeping the correction, the
+        intervening gates, and the eventual ``ejpp_end_link`` release all
+        pointing at the same physical qubit.
+        """
         label = op['label']
         start_label = op['start_label']
-        qubit = op['qubit']
+        qubit = self._resolve_comm(op['qubit'])
         clbit = op['clbit']
         peer_id = op['peer_qpu_id']
 
@@ -1227,8 +1591,8 @@ class QPUProtocol(NodeProtocol):
         """EJPP end correction — data QPU side."""
         label = op['label']
         end_label = op['end_label']
-        comm_qubit = op['comm_qubit']
-        data_qubit = op['data_qubit']
+        comm_qubit = self._resolve_comm(op['comm_qubit'])
+        data_qubit = self._resolve_comm(op['data_qubit'])
         clbit = op['clbit']
         peer_id = op['peer_qpu_id']
 
@@ -1265,10 +1629,15 @@ class QPUProtocol(NodeProtocol):
         yield from self.handle_msg_exchange(recv_op)
 
     def handle_ejpp_end_link(self, op):
-        """EJPP end correction — link QPU side."""
+        """EJPP end correction — link QPU side.
+
+        Resolves the compiler's position through the remap table so the
+        measurement and release act on the pooled qubit, then clears the
+        mapping now that the position is free again.
+        """
         label = op['label']
         end_label = op['end_label']
-        qubit = op['qubit']
+        qubit = self._resolve_comm(op['qubit'])
         clbit = op['clbit']
         peer_id = op['peer_qpu_id']
 
@@ -1299,6 +1668,9 @@ class QPUProtocol(NodeProtocol):
         }
         yield from self.handle_msg_exchange(send_op)
 
+        # The pooled qubit is free again — retire its remap entry.
+        self._release_comm_remap(qubit)
+
     # ── Main run loop ────────────────────────────────────────────────────────
 
     def run(self):
@@ -1312,16 +1684,33 @@ class QPUProtocol(NodeProtocol):
         self.commands = item.get('commands', [])
         log.debug(f"[{self.node.name}] Received {len(self.commands)} commands")
 
-        self.node.qmemory.execute_instruction(IInit())
-        yield self.await_program(self.node.qmemory)
-        log.debug(f"[{self.node.name}] Initialized all qubits")
+        # Reset the register, skipping factory-reserved positions so
+        # pre-filled pairs survive.
+        reserved = (
+            self.epr_factory.reserved_positions
+            if self.epr_factory is not None else set()
+        )
+        if reserved:
+            positions = [
+                p for p in range(self.node.qmemory.num_positions)
+                if p not in reserved
+            ]
+            self.node.qmemory.execute_instruction(IInit(), positions)
+            yield self.await_program(self.node.qmemory)
+            log.debug(
+                f"[{self.node.name}] Initialized qubits, preserving "
+                f"factory-reserved positions {sorted(reserved)}"
+            )
+        else:
+            self.node.qmemory.execute_instruction(IInit())
+            yield self.await_program(self.node.qmemory)
+            log.debug(f"[{self.node.name}] Initialized all qubits")
 
         global EXECUTION_START_TIME, EXECUTION_END_TIME, EXECUTION_DURATION, MAX_EXECUTION_TIME
         global SYNC_START_TIME, SYNC_END_TIME, SYNC_PROCESS_DURATION, MAX_SYNC_PROCESS_TIME
         EXECUTION_START_TIME = ns.sim_time()
 
-        # Gate op names derived from the canonical instruction-set registry
-        # (imported at module level as GATE_OPS).
+        # Gate op names from the instruction-set registry (GATE_OPS).
         _GATE_OPS = GATE_OPS
 
         for op in self.commands:
@@ -1419,9 +1808,8 @@ class QPUProtocol(NodeProtocol):
                 yield from self.handle_ejpp_end_link(op)
 
             elif op_name_lower.startswith('cu1('):
-                # TketFrontend emits CU1 with embedded parameter, e.g. "CU1(1)".
-                # The parameter is already in cmd['params']; we just need to
-                # strip the suffix to get the bare gate name for dispatch.
+                # TketFrontend emits e.g. "CU1(1)"; strip the suffix since
+                # the parameter is already in cmd['params'].
                 qubits = op.get('qubits') or (
                     [op['qubit']] if op.get('qubit') is not None else []
                 )
@@ -1435,10 +1823,43 @@ class QPUProtocol(NodeProtocol):
             elif op_name == 'entanglement_gen':
                 ent_label = op.get('entanglement_label')
                 buffer_key = op.get('target_start_label', ent_label)
+                peer_qpu_id = op.get('peer_qpu_id')
 
-                self.send_start_ready(ent_label)
+                # Comm qubit named by the compiler; every later op in this
+                # eJPP episode refers to it, so it is the remap key.
+                nominated = op.get('l_local')
+                if nominated is None:
+                    _qubits = op.get('qubits') or []
+                    nominated = _qubits[0] if _qubits else None
+
+                # ── Can this side be served from the factory pool? ─────
+                # Query only; the pair is consumed below once the controller
+                # confirms both sides can be served.  A nominated qubit still
+                # redirected by an earlier pair cannot take a second one.
+                pool_ready = (
+                    self.epr_factory is not None
+                    and self.epr_factory.has_usable_pair(peer_qpu_id, ns.sim_time())
+                    and self._comm_remap.get(nominated) is None
+                )
+
+                if (
+                    self.pool_only
+                    and self.epr_factory is not None
+                    and not pool_ready
+                    and self._comm_remap.get(nominated) is None
+                ):
+                    # No on-demand fallback here: wait (bounded) for refill.
+                    # A refused wait leaves pool_ready False and the vote
+                    # sends both sides down the on-demand path together.
+                    pool_ready = yield from self._await_pooled_pair(
+                        peer_qpu_id, ent_label
+                    )
+
+                self.send_start_ready(ent_label, pool_ready=pool_ready)
 
                 bsm_label = None
+                use_pool = False
+                pool_slot = None
                 while True:
                     yield self.await_port_input(self.clk_port)
                     tick_msg = self.clk_port.rx_input()
@@ -1446,10 +1867,12 @@ class QPUProtocol(NodeProtocol):
                     recv_start_label = tick_item.get('start_label')
                     if recv_start_label == ent_label:
                         bsm_label = tick_item.get('bsm_label')
+                        use_pool = bool(tick_item.get('use_pool'))
+                        pool_slot = tick_item.get('pool_slot')
                         log.debug(
                             f"[{self.node.name}] entanglement_gen: "
                             f"clock tick for ent_label={ent_label}, "
-                            f"bsm_label={bsm_label}"
+                            f"bsm_label={bsm_label}, use_pool={use_pool}"
                         )
                         break
                     else:
@@ -1458,6 +1881,60 @@ class QPUProtocol(NodeProtocol):
                             f"ignoring tick, waiting for ent_label={ent_label}"
                         )
 
+                # ── Factory path: consume the pre-generated pair ────────
+                if use_pool:
+                    # Redirect the nominated comm qubit onto the pooled one
+                    # for the lifetime of this pair.  The controller names
+                    # the slot so both endpoints take the same one
+                    # (see ControllerProtocol.choose_pool_slot).
+                    if pool_slot is not None:
+                        pair = self.epr_factory.consume_slot(
+                            peer_qpu_id, pool_slot, ns.sim_time()
+                        )
+                    else:
+                        pair = self.epr_factory.consume_pair(
+                            peer_qpu_id, ns.sim_time()
+                        )
+                    if pair is not None and self._register_comm_remap(
+                        nominated, pair.comm_qubit_local
+                    ):
+                        log.debug(
+                            f"[{self.node.name}] entanglement_gen: consumed "
+                            f"pre-generated pair (peer=QPU_{peer_qpu_id}, "
+                            f"slot={pair.slot_id}, "
+                            f"local_qubit={pair.comm_qubit_local}, "
+                            f"remote_qubit={pair.comm_qubit_remote}, "
+                            f"age={ns.sim_time() - pair.generation_time_ns:.0f} ns)"
+                        )
+                        # Record the choice so a desync between the two sides
+                        # surfaces as a mismatch rather than bad output.
+                        self._record_pool_consumption(
+                            ent_label, peer_qpu_id, pair
+                        )
+                        self.bell_pair_buffer[buffer_key] = pair.to_buffer_entry()
+                        self.occupied_comm_qubits.add(pair.comm_qubit_local)
+                        continue
+
+                    if pair is not None:
+                        # Remap failure means a malformed position; return
+                        # the pair so it is not leaked, then report.
+                        self.epr_factory.return_pair(peer_qpu_id, pair)
+                        log.error(
+                            f"[{self.node.name}] entanglement_gen: could not "
+                            f"remap nominated qubit {nominated} onto pooled "
+                            f"qubit {pair.comm_qubit_local} "
+                            f"(peer=QPU_{peer_qpu_id})"
+                        )
+
+                    # Raced with a staleness eviction; the controller already
+                    # dispatched the BSM, so fall through to on-demand.
+                    log.warning(
+                        f"[{self.node.name}] entanglement_gen: pool reported "
+                        f"ready but no pair available for peer=QPU_{peer_qpu_id}; "
+                        f"falling back to on-demand"
+                    )
+
+                # ── On-demand path ─────────────────────────────────────
                 worker = self._get_or_create_bsm_worker(bsm_label)
                 worker.add_work(buffer_key, op)
                 log.debug(
@@ -1472,7 +1949,7 @@ class QPUProtocol(NodeProtocol):
                     )
 
                 log.debug(
-                    f"[{self.node.name}] entanglement_gen completed: "
+                    f"[{self.node.name}] entanglement_gen completed (on-demand): "
                     f"label={ent_label}, buffer_key={buffer_key}, "
                     f"success={self.bell_pair_buffer[buffer_key]['success']}"
                 )

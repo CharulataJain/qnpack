@@ -48,15 +48,13 @@ circuit:
   measure_qubits: "{1: [21, 20], 2: [20], 3: [20]}"
 
 qpu:
-  num_qpu_nodes: 2
-  qubits: 6
-  two_q_depolar_prob: 0    # 0.0001  — depolarising probability after every 2-qubit gate (cx, CU1, CNOT)
-  one_q_depolar_prob: 0    # 0.00001 — depolarising probability after every 1-qubit gate (h, x, z, rz, sx, sdg, u1, u2, u3, s)
-  #two_q_depolar_prob: 0.0001
-  #one_q_depolar_prob: 0.00001
-  emission_fidelity: 1         # default single-run value (noiseless, overridden by sweep)
-  emission_duration: 0            # Duration of photon emission (ns)
-  collection_efficiency: 1     # photon collection efficiency (1.0 = no loss)
+  num_qpu_nodes: 3               # Number of QPU nodes (must match topology)
+  qubits: 22                     # Default number of qubits per QPU (overridden by topology)
+  two_q_depolar_prob: 0          # 0.0001  — depolarising probability after every 2-qubit gate (cx, CU1, CNOT)
+  one_q_depolar_prob: 0          # 0.00001 — depolarising probability after every 1-qubit gate (h, x, z, rz, sx, sdg, u1, u2, u3, s)
+  emission_fidelity: 1           # photon emission fidelity (1.0 = perfect)
+  emission_duration: 0           # Duration of photon emission (ns)
+  collection_efficiency: 1       # photon collection efficiency (1.0 = no loss)
 
 memory:
   noise_model: "T1T2NoiseModel"  # T1T2NoiseModel for trapped ions
@@ -83,7 +81,6 @@ channel:
   quantum_noise_model: "DepolarNoiseModel"  # Quantum noise model type
   fiber_depolar_rate: 0 #0.2      # Depolarization rate in fiber.
   time_independent: true          # true = rate is direct depol probability per photon (recommended for short channels)
-
 bsm:
   # BSM circuit style under the STAB formalism (ignored when formalism is KET,
   # which always uses the create_meas_ops() POVM):
@@ -98,4 +95,25 @@ bsm:
   detector_wait_factor: 1.05       # Multiplier on travel time for detector dead wait
   max_emission_retries: 90        # Maximum retry attempts for photon emission
   retry_duration: 0               # Duration between retries (ns)
+
+epr_factory:
+  enabled: false                   # Set to true to enable EPR pair pre-generation
+  # Pairs to pre-generate per QPU pairing.  Pools are refilled continuously
+  # during execution, so this sets how much demand the pool can absorb
+  # before a QPU has to wait for regeneration — not a cap on total coverage.
+  pool_size_per_pair: 8
+  # Max comm qubits per QPU usable as pool storage, split evenly across that
+  # QPU's peers.  The topology provides 20 comm qubits; leaving headroom
+  # below 20 keeps positions free for the circuit's own entanglement.
+  comm_qubits_reserved: 16
+  min_fidelity: 0.9                # Minimum fidelity threshold for pair usability
+  check_interval_ns: 1000000       # Freshness check interval during MAINTAIN phase (ns)
+  # Serve *all* entanglement from pools, with no on-demand fallback.  A QPU
+  # whose pool is empty waits for refill instead of starting its own BSM
+  # round.  Set false to keep the on-demand path as a comparison baseline.
+  pool_only: true
+  # Upper bound on that wait.  A refill round takes ~10 us, so this allows
+  # a few hundred attempts before giving up; exceeding it reports starvation
+  # and serves the operation on demand rather than hanging.
+  drain_timeout_ns: 5000000
 

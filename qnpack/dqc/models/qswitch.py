@@ -58,11 +58,19 @@ class EntanglementRequest:
         qpu_right: Name of the right QPU
         assigned_bsm: Name of the assigned BSM (None if not yet assigned)
         status: Current status of the request
+        allowed_bsms: BSMs physically able to serve this pair.  ``None``
+            means "any BSM", which suits a full mesh.  Real topologies wire
+            each QPU pair to a specific subset, and a request must not be
+            assigned a BSM that has no optical path to either endpoint.
+        payload: Opaque caller-supplied context (e.g. the pre-fill job this
+            request stands for).  The queue never inspects it.
     """
     qpu_left: str
     qpu_right: str
     assigned_bsm: Optional[str] = None
     status: str = "pending"
+    allowed_bsms: Optional[Set[str]] = None
+    payload: object = None
 
     def __repr__(self):
         bsm = self.assigned_bsm or "unassigned"
@@ -85,9 +93,31 @@ class EntanglementQueue:
         self.available_bsms: Set[str] = set(bsm_nodes)
         self.all_bsms: Set[str] = set(bsm_nodes)
 
-    def add_request(self, qpu_left: str, qpu_right: str):
-        """Add a new entanglement request to the queue."""
-        req = EntanglementRequest(qpu_left=qpu_left, qpu_right=qpu_right)
+    def add_request(
+        self,
+        qpu_left: str,
+        qpu_right: str,
+        allowed_bsms: Optional[Set[str]] = None,
+        payload: object = None,
+    ):
+        """Add a new entanglement request to the queue.
+
+        Parameters
+        ----------
+        qpu_left, qpu_right : str
+            The two endpoints to entangle.
+        allowed_bsms : set of str, optional
+            Restrict assignment to these BSMs.  Omit for a full mesh where
+            any BSM can serve any pair.
+        payload : object, optional
+            Caller context carried through to the assignment.
+        """
+        req = EntanglementRequest(
+            qpu_left=qpu_left,
+            qpu_right=qpu_right,
+            allowed_bsms=set(allowed_bsms) if allowed_bsms else None,
+            payload=payload,
+        )
         self.pending_requests.append(req)
         log.debug(f"Added entanglement request: {req}")
         return req
@@ -100,13 +130,30 @@ class EntanglementQueue:
             busy.add(req.qpu_right)
         return busy
 
+    def _candidate_bsms(self, req: EntanglementRequest) -> Set[str]:
+        """Free BSMs that are able to serve *req*."""
+        if req.allowed_bsms is None:
+            return self.available_bsms
+        return self.available_bsms & req.allowed_bsms
+
     def get_next_assignments(self) -> List[Tuple[EntanglementRequest, str]]:
         """
         Get the next batch of requests that can be processed in parallel.
 
-        A request is only assigned if **both** of its QPUs are free (not
-        involved in any other active request).  Requests whose QPUs conflict
-        are left in the pending queue for the next scheduling round.
+        Two constraints are enforced, and they are what make the batch
+        genuinely runnable in parallel:
+
+        * **One request per BSM.**  A BSM has a single detector and a single
+          gated window, so two overlapping rounds would make the herald
+          unattributable.  Leasing from ``available_bsms`` guarantees this.
+        * **One emission per QPU.**  A QPU emits from one comm qubit into
+          one quantum port, so a request is only assigned when *both* of its
+          QPUs are free.  Conflicting requests stay pending for the next
+          round.
+
+        When a request names ``allowed_bsms``, only the free BSMs in that
+        set are considered; a pairing with several BSMs picks whichever is
+        free, which is where added BSMs turn into added throughput.
 
         Returns:
             List of (request, bsm_name) tuples for parallel execution
@@ -116,19 +163,22 @@ class EntanglementQueue:
         still_pending = []
 
         for req in self.pending_requests:
-            if not self.available_bsms:
-                # No more BSMs available — keep remaining requests pending
-                still_pending.append(req)
-                continue
-
             if req.qpu_left in busy_qpus or req.qpu_right in busy_qpus:
                 # One or both QPUs are busy — defer this request
                 log.debug(f"Deferring {req}: QPU conflict (busy: {busy_qpus})")
                 still_pending.append(req)
                 continue
 
-            # Both QPUs are free and a BSM is available — assign
-            bsm = self.available_bsms.pop()
+            candidates = self._candidate_bsms(req)
+            if not candidates:
+                # No BSM this pair can reach is free — keep it pending.
+                still_pending.append(req)
+                continue
+
+            # Both QPUs free and a BSM available; sorted so repeated runs of
+            # the same schedule assign identically.
+            bsm = sorted(candidates)[0]
+            self.available_bsms.discard(bsm)
             req.assigned_bsm = bsm
             req.status = "active"
             self.active_requests[bsm] = req
@@ -139,6 +189,21 @@ class EntanglementQueue:
 
         self.pending_requests = still_pending
         return assignments
+
+    def clear_pending(self):
+        """Drop every unassigned request, keeping active leases intact.
+
+        Callers that recompute their outstanding work from scratch on each
+        scheduling round use this to avoid re-adding requests that are
+        already queued.  Without it a periodically-polled scheduler grows
+        its pending list without bound.
+
+        Returns:
+            Number of requests discarded
+        """
+        dropped = len(self.pending_requests)
+        self.pending_requests = []
+        return dropped
 
     def complete_request(self, bsm_name: str, success: bool = True):
         """Mark a request as completed and free the BSM."""
@@ -213,10 +278,14 @@ class ClassicalSwitch(Switch):
 
         Only ``clk`` and ``res`` ports are created — QPU control signals
         go directly from the Controller and do not pass through this switch.
+        The ``factory_clk`` / ``factory_res`` ports mirror them on the
+        dedicated EPR-factory classical plane.
         """
         port_map = {
             "clk": f"sw_{qpu_name}_clk",
             "res": f"sw_{qpu_name}_res",
+            "factory_clk": f"sw_{qpu_name}_factory_clk",
+            "factory_res": f"sw_{qpu_name}_factory_res",
         }
         self.node_port_map[qpu_name] = port_map
 
@@ -238,6 +307,10 @@ class ClassicalSwitch(Switch):
             "clk_right": f"sw_{bsm_name}_clk_right",
             "res_left":  f"sw_{bsm_name}_res_left",
             "res_right": f"sw_{bsm_name}_res_right",
+            "factory_clk_left":  f"sw_{bsm_name}_factory_clk_left",
+            "factory_clk_right": f"sw_{bsm_name}_factory_clk_right",
+            "factory_res_left":  f"sw_{bsm_name}_factory_res_left",
+            "factory_res_right": f"sw_{bsm_name}_factory_res_right",
         }
         self.node_port_map[bsm_name] = port_map
 
@@ -286,6 +359,35 @@ class ClassicalSwitch(Switch):
     def _route_message(self, item, source_node: str, source_type: str):
         """Route a single message item based on input port context."""
         results = []
+
+        if source_type in (
+            "factory_clk_left", "factory_clk_right",
+            "factory_res_left", "factory_res_right",
+        ):
+            # Dedicated EPR-factory classical plane — mirrors the circuit
+            # plane routing but terminates on the QPU's factory_* ports.
+            if source_node in self.active_entanglements:
+                qpu_left, qpu_right = self.active_entanglements[source_node]
+                is_left = source_type.endswith("_left")
+                target_qpu = qpu_left if is_left else qpu_right
+                kind = (
+                    "factory_clk"
+                    if source_type.startswith("factory_clk")
+                    else "factory_res"
+                )
+                dest_port = self.node_port_map.get(target_qpu, {}).get(kind)
+                if dest_port:
+                    log.debug(
+                        f"ROUTING FACTORY ({source_type}): "
+                        f"{source_node} -> {target_qpu} via {dest_port}"
+                    )
+                    results.append((Message([item]), dest_port))
+                else:
+                    log.warning(
+                        f"No {kind} port for QPU {target_qpu} "
+                        f"(source={source_node}, type={source_type})"
+                    )
+            return results
 
         if source_type in ("clk_left", "clk_right"):
             # Clock signal from BSM — route to the appropriate QPU

@@ -20,7 +20,9 @@ from netsquid.components.component import Message
 from netsquid.protocols.protocol import Signals
 
 from ..frontends import load_frontend
+from ..frontends.util import DATA_REGION_START
 from ..labeling import label_and_build_maps
+from .epr_factory import FactoryEntanglementWorker
 
 log = logging.getLogger(__name__)
 
@@ -283,11 +285,9 @@ class ControllerProtocol(NodeProtocol):
         self.qpu_info = qpu_info or {}
         self.bsm_info = bsm_info or {}
 
-        # Pre-labeled commands injected from outside (e.g. the DQC plugin).
-        # When set, ControllerProtocol.run() skips frontend.parse(),
-        # validate_commands(), and label_and_build_maps() and uses these
-        # directly.  Keys must be 1-based integer QPU IDs (matching the
-        # qpu_info convention).
+        # Pre-labeled commands injected from outside (e.g. the DQC plugin),
+        # keyed by 1-based QPU id.  When set, run() skips parse, validate,
+        # and label and uses these directly.
         self._pre_labeled_commands = pre_labeled_commands
         self._pre_process_maps = pre_process_maps
         self.mapping_list = [
@@ -297,7 +297,7 @@ class ControllerProtocol(NodeProtocol):
             ("QPU_4", "LBNL-D"),
         ]
 
-        self.qpu_pair_to_bsm = {}
+        self.qpu_pair_to_bsms = {}
         self._build_qpu_pair_to_bsm_map()
 
         self.clk = self.node.subcomponents["CtrlCLK"]
@@ -306,16 +306,50 @@ class ControllerProtocol(NodeProtocol):
 
         self.start_qpus = {}
         self.start_ready = {}
+        # start_label -> set of QPU ids that hold a usable pre-generated pair
+        self.start_pool_ready = {}
         self.end_qpus = {}
         self.end_ready = {}
 
         self.waiting_qpus = set()
         self.finished_qpus = set()
 
+        self.epr_factory_enabled = False  # Set by DQCProtocol when factory is configured
+        self.epr_factories = []  # List of EPRFactoryProtocol instances (set by DQCProtocol)
+        self.factory_by_qpu = {}  # qpu_id -> EPRFactoryProtocol (set by DQCProtocol)
+        # Max comm qubits per QPU that pool storage may claim (set by DQCProtocol)
+        self.factory_comm_budget = None
+
+        # ── Continuous refill state ──────────────────────────────────────
+        # Pool layout (see _build_pool_pairings); computed once per run.
+        self._pool_pairings = None
+        # Shared scheduler; leases BSMs so two rounds never share one.
+        self._refill_queue = None
+        # job_id -> in-flight round bookkeeping
+        self._refill_in_flight = {}
+        # (lo, hi, slot) -> rebuild count, keeping refill job ids distinct
+        # from the pre-fill round.
+        self._refill_generation = {}
+        self._stats_refill_dispatched = 0
+        self._stats_refill_succeeded = 0
+        self._stats_refill_failed = 0
+        # BSMs leased to an on-demand round: bsm_label -> participating QPUs.
+        # A BSM has one gated detector window, so overlapping rounds would
+        # make the herald unattributable.  Leases come from the pool the
+        # refill scheduler uses, making the two paths mutually exclusive,
+        # and are released when a participating QPU next reports in.
+        self._ondemand_bsm_leases = {}
+
     # ── BSM mapping ──────────────────────────────────────────────────────────
 
     def _build_qpu_pair_to_bsm_map(self):
-        """Build a mapping from QPU-pair to ``(bsm_id, bsm_label)``."""
+        """Map each QPU pair to **every** ``(bsm_id, bsm_label)`` serving it.
+
+        The value is a list rather than a single entry because a pairing may
+        be wired to more than one BSM.  With one BSM per pairing this
+        degenerates to the previous behaviour; with several, the refill
+        scheduler can lease them independently and run rounds in parallel.
+        """
         label_to_qpu_id = {
             label: info["qpu_id"] for label, info in self.qpu_info.items()
         }
@@ -329,20 +363,99 @@ class ControllerProtocol(NodeProtocol):
                 left_qpu_id = label_to_qpu_id[left_label]
                 right_qpu_id = label_to_qpu_id[right_label]
                 pair = frozenset({left_qpu_id, right_qpu_id})
-                self.qpu_pair_to_bsm[pair] = (bsm_id, bsm_label)
+                self.qpu_pair_to_bsms.setdefault(pair, []).append(
+                    (bsm_id, bsm_label)
+                )
                 log.debug(
                     f"[Controller] BSM mapping: QPU_{left_qpu_id} & QPU_{right_qpu_id} "
                     f"-> BSM_Node{bsm_id} ({bsm_label})"
                 )
 
-        log.debug(f"[Controller] QPU-pair -> BSM map: {self.qpu_pair_to_bsm}")
+        # Deterministic order, so the "default" BSM for a pairing is stable
+        # across runs even when the topology lists several.
+        for pair in self.qpu_pair_to_bsms:
+            self.qpu_pair_to_bsms[pair].sort()
+
+        log.debug(f"[Controller] QPU-pair -> BSM map: {self.qpu_pair_to_bsms}")
+
+    def bsms_for_pair(self, qpu_ids):
+        """Every ``(bsm_id, bsm_label)`` that can entangle *qpu_ids*."""
+        return self.qpu_pair_to_bsms.get(frozenset(qpu_ids), [])
+
+    def default_bsm_for_pair(self, qpu_ids):
+        """The first BSM serving *qpu_ids*, or ``None`` if the pair is unwired.
+
+        Used by paths that need a single BSM — on-demand entanglement keeps
+        the circuit plane's one-BSM-per-pair assumption; only refill leases
+        across the full set.
+        """
+        entries = self.bsms_for_pair(qpu_ids)
+        return entries[0] if entries else None
 
     # ── Messaging ────────────────────────────────────────────────────────────
 
-    def send_start_entanglement_to_bsm(self, qpu_ids, start_label):
-        """Send a 'Start Entanglement' message to the BSM node."""
-        pair = frozenset(qpu_ids)
-        bsm_entry = self.qpu_pair_to_bsm.get(pair)
+    # ── On-demand BSM leasing ────────────────────────────────────────────────
+
+    def _acquire_ondemand_bsm(self, bsm_label, qpu_ids):
+        """Lease *bsm_label* for a circuit-plane round, if it is free.
+
+        Refill and the on-demand path share physical BSMs, so they must
+        share one arbiter.  Taking the lease out of the refill scheduler's
+        own ``available_bsms`` set is what guarantees the two can never
+        overlap on a detector.
+
+        Returns
+        -------
+        bool
+            ``True`` when the BSM is ours (or there is no refill scheduler
+            to contend with, as during single-shot execution).
+        """
+        if self._refill_queue is None or bsm_label is None:
+            return True
+        if bsm_label not in self._refill_queue.available_bsms:
+            return False
+        self._refill_queue.available_bsms.discard(bsm_label)
+        self._ondemand_bsm_leases[bsm_label] = set(qpu_ids)
+        return True
+
+    def _release_ondemand_bsm(self, qpu_id):
+        """Return any BSM leased on behalf of *qpu_id* to the refill pool."""
+        if not self._ondemand_bsm_leases:
+            return
+        for bsm_label, qpus in list(self._ondemand_bsm_leases.items()):
+            if qpu_id in qpus:
+                del self._ondemand_bsm_leases[bsm_label]
+                if self._refill_queue is not None:
+                    self._refill_queue.available_bsms.add(bsm_label)
+
+    def _ondemand_bsm_busy(self, bsm_label):
+        """Whether a circuit-plane round currently holds *bsm_label*."""
+        return bsm_label in self._ondemand_bsm_leases
+
+    def send_start_entanglement_to_bsm(
+        self, qpu_ids, start_label, factory=False, bsm_label=None,
+    ):
+        """Send a 'Start Entanglement' message to the BSM node.
+
+        When *factory* is ``True`` the message type is
+        ``'factory_start_entanglement'``, which makes the BSM emit its clock
+        ticks and results on the dedicated EPR-factory classical plane
+        instead of the circuit plane.
+
+        Parameters
+        ----------
+        bsm_label : str or None
+            Target a specific BSM.  Refill leases a BSM from the set serving
+            the pairing and must trigger exactly that one; callers that omit
+            this get the pairing's default BSM.
+        """
+        entries = self.bsms_for_pair(qpu_ids)
+        if bsm_label is not None:
+            bsm_entry = next(
+                (e for e in entries if e[1] == bsm_label), None
+            )
+        else:
+            bsm_entry = entries[0] if entries else None
 
         if bsm_entry is None:
             log.warning(
@@ -354,7 +467,10 @@ class ControllerProtocol(NodeProtocol):
         port_name = f"ctrl_bsm{bsm_id}_port"
         if port_name in self.node.ports:
             msg = Message(items={
-                'type': 'start_entanglement',
+                'type': (
+                    'factory_start_entanglement' if factory
+                    else 'start_entanglement'
+                ),
                 'start_label': start_label,
                 'qpu_ids': list(qpu_ids),
                 'bsm_id': bsm_id,
@@ -383,8 +499,39 @@ class ControllerProtocol(NodeProtocol):
         else:
             log.error(f"[{self.node.name}] Port {port_name} not found")
 
+    def choose_pool_slot(self, qpu_ids):
+        """Pick the slot both endpoints of *qpu_ids* will consume.
+
+        The two sides used to select independently by "lowest usable slot",
+        which agreed only while the pool was static.  Continuous refill
+        breaks that: each side consumes at a slightly different instant, so
+        a slot committed in between is visible to one and not the other and
+        they pick different halves.  The controller sees both pools at one
+        instant, so it can name the slot and remove the ambiguity entirely.
+
+        Returns
+        -------
+        int or None
+            A slot usable on both sides, or ``None`` if there is none.
+        """
+        pair = sorted(qpu_ids)
+        if len(pair) != 2:
+            return None
+        lo, hi = pair
+        lo_factory = self.factory_by_qpu.get(lo)
+        hi_factory = self.factory_by_qpu.get(hi)
+        if lo_factory is None or hi_factory is None:
+            return None
+
+        now = ns.sim_time()
+        shared = (
+            lo_factory.usable_slots(hi, now) & hi_factory.usable_slots(lo, now)
+        )
+        return min(shared) if shared else None
+
     def send_clock_tick_to_all(
-        self, qpu_ids, start_label=None, end_label=None, bsm_label=None
+        self, qpu_ids, start_label=None, end_label=None, bsm_label=None,
+        use_pool=False, pool_slot=None,
     ):
         """Send a single clock tick to multiple QPUs simultaneously."""
         if not self.clk.is_running:
@@ -434,6 +581,8 @@ class ControllerProtocol(NodeProtocol):
                     'start_label': start_label,
                     'end_label': end_label,
                     'bsm_label': bsm_label,
+                    'use_pool': use_pool,
+                    'pool_slot': pool_slot,
                     'clk_tick': clk_msg,
                 })
                 self.node.ports[port_name].tx_output(msg)
@@ -457,13 +606,23 @@ class ControllerProtocol(NodeProtocol):
         start_label = item.get('start_label')
         end_label = item.get('end_label')
 
+        # A QPU only sends once its on-demand round has completed, so its
+        # BSM can be released back to refill.
+        self._release_ondemand_bsm(recv_qpu)
+
         if recv_type == 'start_ready' and start_label is not None:
             if start_label not in self.start_ready:
                 self.start_ready[start_label] = set()
             self.start_ready[start_label].add(recv_qpu)
             self.waiting_qpus.add(recv_qpu)
+
+            # Track which QPUs can serve this label from their EPR pool.
+            if item.get('pool_ready'):
+                self.start_pool_ready.setdefault(start_label, set()).add(recv_qpu)
+
             log.debug(
-                f"[Controller] QPU_{recv_qpu} ready for start_label={start_label}"
+                f"[Controller] QPU_{recv_qpu} ready for start_label={start_label} "
+                f"(pool_ready={bool(item.get('pool_ready'))})"
             )
             return ('start', start_label, recv_qpu)
 
@@ -781,16 +940,754 @@ class ControllerProtocol(NodeProtocol):
             )
         log.info("=" * 60)
 
+    # ── EPR factory pre-fill ─────────────────────────────────────────────────
+
+    def _circuit_entanglement_pairs(self):
+        """Return the set of QPU pairs the circuit actually entangles.
+
+        Derived from the ``entanglement_gen`` labels and their participating
+        QPUs, so the factory only reserves communication qubits for pairings
+        the circuit will really consume.
+
+        Returns
+        -------
+        set[frozenset[int]]
+        """
+        pairs = set()
+        for label in getattr(self, 'entanglement_gen_labels', ()) or ():
+            qpus = self.start_qpus.get(label)
+            if qpus and len(qpus) == 2:
+                pairs.add(frozenset(qpus))
+        return pairs
+
+    def _topology_comm_capacity(self):
+        """Communication qubits each QPU actually has, per the topology.
+
+        The factory must size pool storage against *hardware*, not against
+        the address-layout constant ``NUM_COMM_QUBITS`` (which merely says
+        where the data region begins).  A QPU declaring 2 communication
+        qubits cannot hold 8 pooled pairs no matter what the config asks
+        for.
+
+        Returns
+        -------
+        dict[int, int]
+            ``{qpu_id: comm_qubit_count}``.  QPUs missing from
+            ``qpu_info`` are omitted, and callers then fall back to the
+            layout constant.
+        """
+        capacity = {}
+        for _label, info in (self.qpu_info or {}).items():
+            if not isinstance(info, dict) or "qpu_id" not in info:
+                continue
+            qubits = info.get("qubits")
+            if not qubits:
+                continue
+            capacity[info["qpu_id"]] = sum(
+                1 for q in qubits if q.get("type") == "communication"
+            )
+        return capacity
+
+    def _all_circuit_comm_positions(self):
+        """Every comm position the circuit names, per QPU.
+
+        Returns
+        -------
+        dict[int, set[int]]
+        """
+        used = {}
+        for qpu_id, commands in self.qpu_commands.items():
+            seen = used.setdefault(qpu_id, set())
+            for cmd in commands:
+                candidates = list(cmd.get('qubits') or [])
+                for key in ('qubit', 'comm_qubit', 'data_qubit', 'l_local',
+                            'free_comm_qubit', 'mark_comm_occupied'):
+                    value = cmd.get(key)
+                    if isinstance(value, int):
+                        candidates.append(value)
+                for pos in candidates:
+                    if isinstance(pos, int) and 0 <= pos < DATA_REGION_START:
+                        seen.add(pos)
+        return used
+
+    def _align_pools_with_circuit(self):
+        """Prune unused pools and give each pooled pair disjoint storage.
+
+        Two corrections are applied before pre-fill:
+
+        1. **Prune** pools for QPU pairs the circuit never entangles, since
+           each pooled pair permanently occupies a communication qubit.
+        2. **Allocate storage outside the circuit's own comm positions.**
+
+        The second point is subtle.  Pre-fill stages every pooled pair
+        *before* the circuit runs, so each needs its own physical qubit —
+        and that qubit must not be one the circuit itself names.  The
+        compiler reuses a small set of low comm positions, recycling them
+        after each release, so reusing its positions as pool storage creates
+        aliasing: a pair parked on position 1 collides with the circuit's
+        independent use of position 1, and the remap table degenerates into
+        a cycle such as ``{0: 1, 1: 2, 2: 0}``.
+
+        Allocating from the *top* of the comm region downwards keeps pool
+        storage disjoint from compiler-named positions.  ``QPUProtocol``
+        then redirects the compiler's position to the pooled one through its
+        remap table, so the circuit stays agnostic to where the pair lives.
+
+        Each QPU may dedicate at most ``factory_comm_budget`` qubits
+        (``epr_factory.comm_qubits_reserved``) to pool storage in total,
+        so a deep pool cannot starve the circuit of communication qubits.
+        That budget is split **evenly across a QPU's peers**.  Allocating
+        greedily in peer order instead would let the first pairing consume
+        almost everything: with ``pool_size=16`` and a budget of 20, peer A
+        took 16 qubits and peer B got 2.  Because pre-fill pairs slots via
+        ``min()`` of the two endpoints, the starved pairing then collapses to
+        depth 2 and *total* pooled coverage falls as ``pool_size`` rises.
+        """
+        wanted = self._circuit_entanglement_pairs()
+        circuit_used = self._all_circuit_comm_positions()
+        budget = getattr(self, 'factory_comm_budget', None)
+        comm_capacity = self._topology_comm_capacity()
+
+        # Per-QPU allocator: start above every circuit-named position and
+        # walk down so pool storage never aliases one.
+        taken = {
+            qpu_id: set(circuit_used.get(qpu_id, set()))
+            for qpu_id in self.factory_by_qpu
+        }
+
+        # Validate the reservation against hardware up front so an oversized
+        # request is reported once instead of truncated per pairing.
+        for qpu_id in sorted(self.factory_by_qpu):
+            hw = comm_capacity.get(qpu_id)
+            if hw is None:
+                continue
+            in_use = len(circuit_used.get(qpu_id, set()))
+            free = hw - in_use
+            if budget is not None and budget > free:
+                log.warning(
+                    f"[Controller] EPR factory: QPU_{qpu_id} has {hw} "
+                    f"communication qubit(s), {in_use} used by the circuit, "
+                    f"leaving {free} for pool storage — but "
+                    f"comm_qubits_reserved={budget}. Clamping to {max(free, 0)}."
+                )
+            if free <= 0:
+                log.warning(
+                    f"[Controller] EPR factory: QPU_{qpu_id} has no spare "
+                    f"communication qubits; its pools will be dropped and "
+                    f"all its entanglement served on demand."
+                )
+
+        # Drop pairings the circuit never entangles before dividing the
+        # budget, so pruned peers do not consume a share.
+        for qpu_id, factory in list(self.factory_by_qpu.items()):
+            for peer_qpu_id in list(factory.peer_configs):
+                if frozenset({qpu_id, peer_qpu_id}) not in wanted:
+                    factory.drop_peer(peer_qpu_id)
+                    log.debug(
+                        f"[Controller] Pruned unused EPR pool "
+                        f"QPU_{qpu_id}<->QPU_{peer_qpu_id} "
+                        f"(no entanglement_gen between them)"
+                    )
+
+        # Fair share per peer, bounded by whatever the hardware leaves free
+        # after the circuit's own comm-qubit use.
+        share = {}
+        for qpu_id, factory in self.factory_by_qpu.items():
+            n_peers = len(factory.peer_configs)
+            hw = comm_capacity.get(
+                qpu_id, factory.qpu_protocol.NUM_COMM_QUBITS
+            )
+            free = max(0, hw - len(circuit_used.get(qpu_id, set())))
+            allowed = free if budget is None else min(budget, free)
+            if n_peers == 0 or allowed <= 0:
+                share[qpu_id] = 0
+            else:
+                share[qpu_id] = max(1, allowed // n_peers)
+
+        for qpu_id, factory in list(self.factory_by_qpu.items()):
+            for peer_qpu_id in list(factory.peer_configs):
+                requested = factory.peer_configs[peer_qpu_id]["pool_size"]
+                capacity = min(requested, share[qpu_id])
+                # Never address beyond the QPU's real communication qubits.
+                num_comm = min(
+                    factory.qpu_protocol.NUM_COMM_QUBITS,
+                    comm_capacity.get(
+                        qpu_id, factory.qpu_protocol.NUM_COMM_QUBITS
+                    ),
+                )
+
+                positions = []
+                for pos in range(num_comm - 1, -1, -1):
+                    if len(positions) >= capacity:
+                        break
+                    if pos not in taken[qpu_id]:
+                        positions.append(pos)
+                        taken[qpu_id].add(pos)
+
+                if positions and len(positions) < requested:
+                    log.info(
+                        f"[Controller] EPR pool QPU_{qpu_id}<->"
+                        f"QPU_{peer_qpu_id}: depth {len(positions)} instead of "
+                        f"the requested {requested} (communication qubits are "
+                        f"shared with the circuit and {max(1, len(factory.peer_configs))} "
+                        f"peer pool(s))"
+                    )
+
+                if not positions:
+                    factory.drop_peer(peer_qpu_id)
+                    log.debug(
+                        f"[Controller] Pruned EPR pool "
+                        f"QPU_{qpu_id}<->QPU_{peer_qpu_id}: no comm position "
+                        f"free of circuit use (falling back to on-demand)"
+                    )
+                    continue
+
+                factory.set_peer_positions(peer_qpu_id, sorted(positions))
+                log.debug(
+                    f"[Controller] EPR pool QPU_{qpu_id}<->QPU_{peer_qpu_id} "
+                    f"storage={sorted(positions)} "
+                    f"(circuit uses {sorted(circuit_used.get(qpu_id, set()))})"
+                )
+
+        # A pool is only usable if BOTH endpoints kept one, since a pair
+        # needs a reserved qubit on each side.
+        for qpu_id, factory in list(self.factory_by_qpu.items()):
+            for peer_qpu_id in list(factory.peer_configs):
+                peer_factory = self.factory_by_qpu.get(peer_qpu_id)
+                if peer_factory is None or qpu_id not in peer_factory.peer_configs:
+                    factory.drop_peer(peer_qpu_id)
+                    log.debug(
+                        f"[Controller] Pruned EPR pool "
+                        f"QPU_{qpu_id}<->QPU_{peer_qpu_id}: peer side "
+                        f"has no matching pool"
+                    )
+
+    def _build_prefill_schedule(self):
+        """Build the deterministic list of pre-fill jobs to execute.
+
+        Each job entangles one communication qubit on ``qpu_lo`` with one on
+        ``qpu_hi`` through their shared BSM.  Jobs are emitted in sorted
+        ``(qpu_lo, qpu_hi, slot)`` order so both endpoints agree on the
+        sequencing without any negotiation.
+
+        Only QPU pairs where *both* sides are active (have circuit commands)
+        and both have a configured factory pool are scheduled.
+
+        Returns
+        -------
+        list[dict]
+            Job descriptors with keys ``job_id``, ``lo``, ``hi``,
+            ``lo_position``, ``hi_position``, ``slot``.
+
+        Notes
+        -----
+        ``lo`` and ``hi`` are the two **QPU ids** of the pairing, sorted —
+        not register positions.  ``lo_position`` therefore means "the comm
+        qubit on the lower-numbered QPU", which is frequently the larger
+        index, since storage is allocated from the top of the comm region
+        downwards.
+
+        The ``slot`` index is the durable identity of a pair: both halves
+        are tagged with it, so each QPU can later pick the matching half
+        purely by local rule (see :meth:`EPRPairPool.consume_best`).
+        """
+        schedule = []
+        for pairing in self._build_pool_pairings():
+            for slot in range(pairing["num_slots"]):
+                schedule.append(self._make_generation_job(pairing, slot))
+        return schedule
+
+    def _build_pool_pairings(self):
+        """Describe every pooled QPU pairing and the storage backing it.
+
+        This is the durable shape of the pool layout: which two QPUs share a
+        pool, which comm qubit holds each slot on each side, and how many
+        slots there are.  Pre-fill walks it once; refill consults it for the
+        lifetime of the run to rebuild whichever slots have drained.
+
+        Returns
+        -------
+        list[dict]
+            Keys ``lo``, ``hi``, ``lo_positions``, ``hi_positions``,
+            ``num_slots``.
+        """
+        if self._pool_pairings is not None:
+            return self._pool_pairings
+
+        pairings = []
+        seen_pairs = set()
+
+        for qpu_id, factory in sorted(self.factory_by_qpu.items()):
+            for peer_qpu_id, _peer_cfg in sorted(factory.peer_configs.items()):
+                lo, hi = min(qpu_id, peer_qpu_id), max(qpu_id, peer_qpu_id)
+                if (lo, hi) in seen_pairs:
+                    continue
+
+                lo_factory = self.factory_by_qpu.get(lo)
+                hi_factory = self.factory_by_qpu.get(hi)
+                if lo_factory is None or hi_factory is None:
+                    continue
+
+                # Both sides must be running a circuit, otherwise the idle
+                # QPU's node protocols never start and the round would hang.
+                if lo not in self.active_qpu_ids or hi not in self.active_qpu_ids:
+                    log.debug(
+                        f"[Controller] Skipping pre-fill for QPU_{lo}<->QPU_{hi}: "
+                        f"inactive endpoint (active={sorted(self.active_qpu_ids)})"
+                    )
+                    continue
+
+                if not self.bsms_for_pair({lo, hi}):
+                    continue
+
+                lo_cfg = lo_factory.peer_configs.get(hi)
+                hi_cfg = hi_factory.peer_configs.get(lo)
+                if lo_cfg is None or hi_cfg is None:
+                    continue
+
+                seen_pairs.add((lo, hi))
+
+                lo_positions = list(lo_cfg["comm_positions"])
+                hi_positions = list(hi_cfg["comm_positions"])
+                pairings.append({
+                    "lo": lo,
+                    "hi": hi,
+                    "lo_positions": lo_positions,
+                    "hi_positions": hi_positions,
+                    "num_slots": min(len(lo_positions), len(hi_positions)),
+                })
+
+        self._pool_pairings = pairings
+        return pairings
+
+    def _make_generation_job(self, pairing, slot, generation=0):
+        """Build one generation job for *slot* of *pairing*.
+
+        Parameters
+        ----------
+        generation : int
+            How many times this slot has been rebuilt.  It only
+            distinguishes job ids, so a refill round is never confused with
+            the pre-fill round that first filled the same slot.
+        """
+        lo, hi = pairing["lo"], pairing["hi"]
+        suffix = "" if generation == 0 else f"_r{generation}"
+        return {
+            "job_id": f"factory_{lo}_{hi}_{slot}{suffix}",
+            "lo": lo,
+            "hi": hi,
+            "lo_position": pairing["lo_positions"][slot],
+            "hi_position": pairing["hi_positions"][slot],
+            "slot": slot,
+        }
+
+    # ── Generation scheduling (shared by pre-fill and refill) ────────────────
+
+    def _make_entanglement_queue(self):
+        """Create an :class:`EntanglementQueue` over every BSM in the network.
+
+        The queue owns the two hardware constraints that govern parallel
+        generation — one round per BSM, one emission per QPU — so neither
+        pre-fill nor refill has to re-implement serialisation.  With a single
+        BSM per pairing it schedules exactly the sequential behaviour the
+        pre-fill phase had before; with several it produces genuinely
+        parallel batches.
+        """
+        from ..models.qswitch import EntanglementQueue
+
+        all_bsm_labels = sorted(self.bsm_info.keys())
+        return EntanglementQueue(all_bsm_labels)
+
+    def _dispatch_generation_job(self, job, bsm_label):
+        """Arm both endpoints for *job* and trigger the leased BSM.
+
+        Returns the two factory workers, whose ``ENTANGLEMENT_DONE`` signals
+        mark the round complete.  Nothing is awaited here, so the caller
+        decides whether to block (pre-fill) or fold the completion into a
+        larger event expression (refill).
+
+        Parameters
+        ----------
+        job : dict
+            Descriptor from :meth:`_build_prefill_schedule` or
+            :meth:`_build_refill_jobs`.
+        bsm_label : str
+            The BSM leased for this round.  Both sides must be armed for the
+            same BSM, and it is the one the trigger message is sent to.
+
+        Returns
+        -------
+        tuple
+            ``(lo_worker, hi_worker)``
+        """
+        lo, hi = job["lo"], job["hi"]
+        lo_factory = self.factory_by_qpu[lo]
+        hi_factory = self.factory_by_qpu[hi]
+
+        # Arm both endpoints with the same slot index so they agree on the
+        # pair at consumption.  By convention (shared with the on-demand
+        # path) the higher-numbered QPU applies the Pauli corrections.
+        lo_worker = lo_factory.arm_prefill(
+            peer_qpu_id=hi,
+            job_id=job["job_id"],
+            position=job["lo_position"],
+            peer_position=job["hi_position"],
+            apply_corrections=False,
+            slot_id=job["slot"],
+            bsm_label=bsm_label,
+        )
+        hi_worker = hi_factory.arm_prefill(
+            peer_qpu_id=lo,
+            job_id=job["job_id"],
+            position=job["hi_position"],
+            peer_position=job["lo_position"],
+            apply_corrections=True,
+            slot_id=job["slot"],
+            bsm_label=bsm_label,
+        )
+
+        # Trigger the leased BSM on the factory plane.
+        self.send_start_entanglement_to_bsm(
+            {lo, hi}, start_label=job["job_id"], factory=True,
+            bsm_label=bsm_label,
+        )
+        return lo_worker, hi_worker
+
+    def _queue_generation_jobs(self, queue, jobs):
+        """Enqueue *jobs*, restricting each to the BSMs serving its pairing."""
+        for job in jobs:
+            allowed = {
+                label for _bsm_id, label in self.bsms_for_pair(
+                    {job["lo"], job["hi"]}
+                )
+            }
+            queue.add_request(
+                qpu_left=f"QPU_{job['lo']}",
+                qpu_right=f"QPU_{job['hi']}",
+                allowed_bsms=allowed,
+                payload=job,
+            )
+
+    def _run_factory_prefill(self):
+        """Fill every EPR pool to capacity before circuit execution starts.
+
+        This is a generalisation of the on-demand ``entanglement_gen`` flow:
+        the controller triggers a BSM and both QPUs emit a photon.  The
+        difference is that everything happens on the dedicated factory
+        classical plane, so the circuit-execution workers are untouched, and
+        the resulting pairs land in :class:`EPRPairPool` objects rather than
+        the ``bell_pair_buffer``.
+
+        Scheduling is delegated to :class:`EntanglementQueue`, which leases
+        each BSM to at most one round and defers any job whose QPUs are
+        already emitting.  Each batch it returns is therefore safe to run
+        concurrently; the controller dispatches the whole batch and waits for
+        all of it before asking for the next.
+        """
+        self._align_pools_with_circuit()
+        schedule = self._build_prefill_schedule()
+
+        if not schedule:
+            log.info("[Controller] EPR factory pre-fill: nothing to schedule")
+            return
+
+        log.info(
+            f"[Controller] EPR factory pre-fill: {len(schedule)} job(s) "
+            f"starting at t={ns.sim_time()}"
+        )
+
+        queue = self._make_entanglement_queue()
+        self._queue_generation_jobs(queue, schedule)
+
+        done_signal = FactoryEntanglementWorker.ENTANGLEMENT_DONE
+        generated = 0
+        batches = 0
+
+        while queue.has_pending():
+            assignments = queue.get_next_assignments()
+            if not assignments:
+                # Nothing runnable and nothing active is a stall: the queue
+                # only empties on conflicts with active rounds, and pre-fill
+                # awaits each batch fully.
+                log.error(
+                    "[Controller] EPR pre-fill stalled: no runnable job and "
+                    "no round in flight"
+                )
+                break
+
+            wait_ev = None
+            for req, bsm_label in assignments:
+                lo_worker, hi_worker = self._dispatch_generation_job(
+                    req.payload, bsm_label
+                )
+                round_ev = (
+                    self.await_signal(lo_worker, done_signal)
+                    & self.await_signal(hi_worker, done_signal)
+                )
+                wait_ev = round_ev if wait_ev is None else wait_ev & round_ev
+
+            batches += 1
+            log.debug(
+                f"[Controller] Pre-fill batch {batches}: "
+                f"{len(assignments)} round(s) in parallel on "
+                f"{sorted(bsm for _r, bsm in assignments)}"
+            )
+
+            yield wait_ev
+
+            for req, bsm_label in assignments:
+                queue.complete_request(bsm_label)
+                generated += 1
+                log.debug(
+                    f"[Controller] Pre-fill job {req.payload['job_id']} "
+                    f"complete ({generated}/{len(schedule)}) at "
+                    f"t={ns.sim_time()}"
+                )
+
+        pool_summary = {
+            qpu_id: factory.stats["pool_sizes"]
+            for qpu_id, factory in sorted(self.factory_by_qpu.items())
+        }
+        log.info(
+            f"[Controller] EPR factory pre-fill complete at t={ns.sim_time()}: "
+            f"{generated} round(s) in {batches} batch(es), pools={pool_summary}"
+        )
+
+    # ── Continuous refill ────────────────────────────────────────────────────
+
+    def _refill_candidate_slots(self):
+        """Slots that have drained and could be regenerated right now.
+
+        A slot qualifies when neither endpoint still holds a half of it —
+        both consumed their halves, so the pair is spent and its storage
+        qubits are free again.  Refilling the *exact* vacated slot keeps the
+        two sides' slot numbering identical by construction, which is what
+        their no-negotiation agreement rests on.
+
+        Slots with a round already in flight are excluded by the caller.
+
+        Returns
+        -------
+        list[tuple[dict, int]]
+            ``(pairing, slot)`` pairs, in deterministic order.
+        """
+        candidates = []
+        for pairing in self._build_pool_pairings():
+            lo_factory = self.factory_by_qpu.get(pairing["lo"])
+            hi_factory = self.factory_by_qpu.get(pairing["hi"])
+            if lo_factory is None or hi_factory is None:
+                continue
+
+            # A finished QPU stops emitting, so a round involving it could
+            # never herald and would leave events queued forever.  Skip only
+            # this pairing; others keep refilling.
+            if (
+                pairing["lo"] in self.finished_qpus
+                or pairing["hi"] in self.finished_qpus
+            ):
+                continue
+
+
+            for slot in range(pairing["num_slots"]):
+                lo_holds = lo_factory.holds_slot(pairing["hi"], slot)
+                hi_holds = hi_factory.holds_slot(pairing["lo"], slot)
+                if lo_holds or hi_holds:
+                    continue
+
+                # Refill re-initialises the storage qubits, so the circuit
+                # must have released them first.
+                if (
+                    pairing["lo_positions"][slot]
+                    in lo_factory.qpu_protocol.occupied_comm_qubits
+                    or pairing["hi_positions"][slot]
+                    in hi_factory.qpu_protocol.occupied_comm_qubits
+                ):
+                    continue
+
+                candidates.append((pairing, slot))
+        return candidates
+
+    def _dispatch_refill(self):
+        """Start a generation round for every drained slot that can run now.
+
+        Fire-and-forget: the controller must never block on refill, because
+        while it waits it is not draining ``start_ready`` and the whole
+        circuit stalls.  Completions are collected later by
+        :meth:`_harvest_refill`, whose events the main loop folds into the
+        expression it already waits on when idle.
+
+        Returns
+        -------
+        int
+            Number of rounds dispatched.
+        """
+        if not self.epr_factory_enabled or not self.factory_by_qpu:
+            return 0
+
+
+        queue = self._refill_queue
+        if queue is None:
+            return 0
+
+        in_flight_slots = {
+            (r["lo"], r["hi"], r["slot"]) for r in self._refill_in_flight.values()
+        }
+
+        # Candidates are recomputed from pool state each call, so drop stale
+        # pending requests to keep the queue bounded.
+        queue.clear_pending()
+
+        jobs = []
+        for pairing, slot in self._refill_candidate_slots():
+            key = (pairing["lo"], pairing["hi"], slot)
+            if key in in_flight_slots:
+                continue
+            generation = self._refill_generation.get(key, 0) + 1
+            jobs.append(self._make_generation_job(pairing, slot, generation))
+
+        if not jobs:
+            return 0
+
+        self._queue_generation_jobs(queue, jobs)
+        assignments = queue.get_next_assignments()
+
+        for req, bsm_label in assignments:
+            job = req.payload
+            # Halves stay invisible until both sides have them
+            # (see EPRPairEntry.committed), so no partial consumption.
+            job = dict(job, committed=False)
+            lo_worker, hi_worker = self._dispatch_generation_job(job, bsm_label)
+            self._refill_in_flight[job["job_id"]] = {
+                "lo": job["lo"],
+                "hi": job["hi"],
+                "slot": job["slot"],
+                "bsm_label": bsm_label,
+                "lo_worker": lo_worker,
+                "hi_worker": hi_worker,
+                "lo_done": False,
+                "hi_done": False,
+                "started_ns": ns.sim_time(),
+            }
+            key = (job["lo"], job["hi"], job["slot"])
+            self._refill_generation[key] = self._refill_generation.get(key, 0) + 1
+            self._stats_refill_dispatched += 1
+            log.debug(
+                f"[Controller] Refill dispatched {job['job_id']} on {bsm_label} "
+                f"at t={ns.sim_time()}"
+            )
+
+        return len(assignments)
+
+    def _refill_wait_expression(self):
+        """Event expression covering every refill round currently in flight.
+
+        Returned for OR-ing into the controller's idle wait, so a refill
+        completion wakes the loop just like a QPU message would.  ``None``
+        when nothing is in flight.
+        """
+        ev = None
+        done_signal = FactoryEntanglementWorker.ENTANGLEMENT_DONE
+        for record in self._refill_in_flight.values():
+            for side in ("lo", "hi"):
+                if record[f"{side}_done"]:
+                    continue
+                worker_ev = self.await_signal(
+                    record[f"{side}_worker"], done_signal
+                )
+                ev = worker_ev if ev is None else ev | worker_ev
+        return ev
+
+    def _harvest_refill(self):
+        """Commit or discard refill rounds whose both halves have landed.
+
+        A round only yields a usable pair when *both* endpoints succeeded.
+        When they did, the two halves are committed together so they become
+        selectable at the same instant on both sides.  When either failed,
+        any surviving half is dropped: it is entangled with nothing, and
+        leaving it would hand out a broken pair.
+
+        Returns
+        -------
+        int
+            Number of rounds completed (successfully or not).
+        """
+        if not self._refill_in_flight:
+            return 0
+
+        completed = 0
+        for job_id, record in list(self._refill_in_flight.items()):
+            lo_factory = self.factory_by_qpu.get(record["lo"])
+            hi_factory = self.factory_by_qpu.get(record["hi"])
+            if lo_factory is None or hi_factory is None:
+                del self._refill_in_flight[job_id]
+                continue
+
+            lo_outcome = lo_factory.take_job_outcome(job_id)
+            hi_outcome = hi_factory.take_job_outcome(job_id)
+            if lo_outcome is not None:
+                record["lo_done"] = True
+                record["lo_success"] = lo_outcome
+            if hi_outcome is not None:
+                record["hi_done"] = True
+                record["hi_success"] = hi_outcome
+
+            if not (record["lo_done"] and record["hi_done"]):
+                continue
+
+            slot = record["slot"]
+            both_ok = record.get("lo_success") and record.get("hi_success")
+
+            if both_ok:
+                lo_factory.commit_slot(record["hi"], slot)
+                hi_factory.commit_slot(record["lo"], slot)
+                self._stats_refill_succeeded += 1
+                log.debug(
+                    f"[Controller] Refill {job_id} committed at "
+                    f"t={ns.sim_time()} "
+                    f"({ns.sim_time() - record['started_ns']:.0f} ns)"
+                )
+            else:
+                # Drop whichever half did land, so the slot reads as free
+                # and becomes a refill candidate again.
+                lo_factory.drop_slot(record["hi"], slot)
+                hi_factory.drop_slot(record["lo"], slot)
+                self._stats_refill_failed += 1
+                log.debug(
+                    f"[Controller] Refill {job_id} failed "
+                    f"(lo={record.get('lo_success')}, "
+                    f"hi={record.get('hi_success')}); slot {slot} released"
+                )
+
+            self._refill_queue.complete_request(record["bsm_label"])
+            del self._refill_in_flight[job_id]
+            completed += 1
+
+        return completed
+
+    def _service_refill(self):
+        """Harvest finished refill rounds, then start whatever can run now.
+
+        Called from the controller's main loop at every opportunity.  Both
+        halves are non-blocking, so servicing refill never delays circuit
+        dispatch.
+        """
+        if not self.epr_factory_enabled or self._refill_queue is None:
+            return
+        self._harvest_refill()
+        self._dispatch_refill()
+
     # ── Main run loop ────────────────────────────────────────────────────────
 
     def run(self):
         log.debug(f"[{self.node.name}] Starting at time {ns.sim_time()}")
 
+        from qnpack.common.config import MissingConfigError, require_cfg
         circuit_cfg = getattr(self.cfg, 'circuit', None)
+        if circuit_cfg is None:
+            raise MissingConfigError("circuit", "mode")
 
         if self._pre_labeled_commands is not None:
-            # ── Fast path: pre-labeled commands supplied by the DQC plugin ────
-            # Skip parse, validate, and label — the plugin has already done this.
+            # Fast path: the DQC plugin already parsed, validated, labeled.
             log.debug("[Controller] Using pre-labeled commands from DQC plugin")
             self.qpu_commands        = self._pre_labeled_commands
             self.start_qpus          = self._pre_process_maps['start_qpus']
@@ -798,6 +1695,7 @@ class ControllerProtocol(NodeProtocol):
             self.entanglement_gen_labels = self._pre_process_maps['entanglement_gen_labels']
             self.start_ready = {k: set() for k in self.start_qpus}
             self.end_ready   = {k: set() for k in self.end_qpus}
+            self.start_pool_ready = {}
         else:
             # ── Normal path: parse → validate → label ────────────────────────
             if self.frontend is not None:
@@ -838,10 +1736,12 @@ class ControllerProtocol(NodeProtocol):
             self.entanglement_gen_labels = process_maps['entanglement_gen_labels']
             self.start_ready = {k: set() for k in self.start_qpus}
             self.end_ready   = {k: set() for k in self.end_qpus}
+            self.start_pool_ready = {}
 
-        if getattr(self.cfg.circuit, 'pre_schedule_entanglement', False):
-            expected_latency = getattr(
-                self.cfg.circuit, 'expected_ent_latency_ns', 0
+        pre_sched = require_cfg(self.cfg.circuit, 'pre_schedule_entanglement', 'circuit')
+        if pre_sched:
+            expected_latency = require_cfg(
+                self.cfg.circuit, 'expected_ent_latency_ns', 'circuit'
             )
             stats = insert_pre_entanglement_commands(
                 self.qpu_commands,
@@ -855,6 +1755,16 @@ class ControllerProtocol(NodeProtocol):
             f"[Controller] Active QPUs (have commands): {self.active_qpu_ids} "
             f"({self.num_active_qpus}/{self.num_qpus} total)"
         )
+
+        # ── EPR Factory pre-fill ───────────────────────────────────────────
+        # Fill every pool to capacity before dispatching circuit commands so
+        # entanglement_gen can consume a ready-made pair.
+        if self.epr_factory_enabled and self.factory_by_qpu:
+            yield from self._run_factory_prefill()
+            # Pre-fill is one-shot and covers only pool_size x pairings
+            # operations; the refill queue regenerates drained slots for the
+            # rest of the run.
+            self._refill_queue = self._make_entanglement_queue()
 
         if self.run_idx == 0:
             with open("qpu_partitioned_commands.json", "w") as f:
@@ -880,6 +1790,10 @@ class ControllerProtocol(NodeProtocol):
                 f"[Controller] Loop top: finished={self.finished_qpus}, "
                 f"need={self.num_active_qpus}, waiting={self.waiting_qpus}"
             )
+
+            # Harvest completed refill rounds and start new ones.  Both are
+            # non-blocking, so this never delays circuit dispatch.
+            self._service_refill()
 
             # Drain all buffered messages
             found_buffered = True
@@ -908,13 +1822,58 @@ class ControllerProtocol(NodeProtocol):
                 if is_start:
                     qpus_involved = self.start_qpus[label]
 
-                    pair = frozenset(qpus_involved)
-                    bsm_entry = self.qpu_pair_to_bsm.get(pair)
+                    bsm_entry = self.default_bsm_for_pair(qpus_involved)
                     bsm_label = bsm_entry[1] if bsm_entry else None
 
                     needs_bsm = label in self.entanglement_gen_labels
+
+                    # Skip the BSM round only if every party holds a usable
+                    # pair; a partial hit leaves one side entangled with
+                    # nothing.
+                    pool_voters = self.start_pool_ready.get(label, set())
+                    use_pool = needs_bsm and qpus_involved <= pool_voters
+
+                    # Name the slot both sides take; independent choices
+                    # desync under continuous refill (see choose_pool_slot).
+                    pool_slot = (
+                        self.choose_pool_slot(qpus_involved) if use_pool
+                        else None
+                    )
+                    if use_pool and pool_slot is None:
+                        # Both sides have a usable pair but no common slot
+                        # (mid-flight refill); fall back rather than consume
+                        # mismatched halves.
+                        log.debug(
+                            f"[Controller] {label}: no slot usable on both "
+                            f"sides; falling back to on-demand"
+                        )
+                        use_pool = False
+
+                    if use_pool:
+                        needs_bsm = False
+
+                    # Take the BSM before ticking the QPUs into emission.
+                    # Waiting out a refill round's short detector window is
+                    # cheap; overlapping rounds hang both sides.
+                    while needs_bsm and not self._acquire_ondemand_bsm(
+                        bsm_label, qpus_involved
+                    ):
+                        refill_ev = self._refill_wait_expression()
+                        if refill_ev is None:
+                            # Nothing in flight to wait for — the lease is
+                            # not a refill one, so proceed rather than spin.
+                            break
+                        log.debug(
+                            f"[Controller] {label} waiting for refill to "
+                            f"release {bsm_label}"
+                        )
+                        yield refill_ev
+                        self._harvest_refill()
+
                     label_type = (
-                        "entanglement_gen" if needs_bsm else "starting_process"
+                        "entanglement_gen" if needs_bsm
+                        else ("entanglement_gen[pool]" if use_pool
+                              else "starting_process")
                     )
                     log.debug(
                         f">>> Executing {label_type} {label} with "
@@ -922,7 +1881,8 @@ class ControllerProtocol(NodeProtocol):
                     )
 
                     yield from self.send_clock_tick_to_all(
-                        qpus_involved, start_label=label, bsm_label=bsm_label
+                        qpus_involved, start_label=label, bsm_label=bsm_label,
+                        use_pool=use_pool, pool_slot=pool_slot,
                     )
                     for qpu_id in qpus_involved:
                         self.waiting_qpus.discard(qpu_id)
@@ -933,6 +1893,7 @@ class ControllerProtocol(NodeProtocol):
                         )
 
                     self.start_ready[label] = set()
+                    self.start_pool_ready.pop(label, None)
                     del self.start_qpus[label]
                 else:
                     qpus_involved = self.end_qpus[label]
@@ -970,8 +1931,23 @@ class ControllerProtocol(NodeProtocol):
                         else ev_expr | self.await_port_input(port)
                     )
 
+            # Fold refill completions into the same wait, otherwise a
+            # finished round sits unharvested while every QPU blocks on it.
+            refill_ev = self._refill_wait_expression()
+            if refill_ev is not None:
+                ev_expr = refill_ev if ev_expr is None else ev_expr | refill_ev
+
+            if ev_expr is None:
+                log.error(
+                    "[Controller] Nothing to wait on and no ready process — "
+                    "aborting to avoid a hang"
+                )
+                break
+
             yield ev_expr
             log.debug(f"[Controller] Woke up at time={ns.sim_time()}")
+
+            self._service_refill()
 
             drain_round = 0
             while True:
@@ -997,5 +1973,13 @@ class ControllerProtocol(NodeProtocol):
 
         if self.clk.is_running:
             self.clk.stop()
+
+        if self.epr_factory_enabled and self._stats_refill_dispatched:
+            log.info(
+                f"[Controller] EPR refill: {self._stats_refill_dispatched} "
+                f"round(s) dispatched, {self._stats_refill_succeeded} "
+                f"committed, {self._stats_refill_failed} failed"
+            )
+
         log.debug(f"[{self.node.name}] All QPUs done at {ns.sim_time()}")
         self.send_signal(Signals.SUCCESS)

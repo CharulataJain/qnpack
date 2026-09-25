@@ -28,6 +28,8 @@ The package enables rapid prototyping and experimentation using NetSquid-based s
 
 The `qnpack.dqc` module extends QNPack with a full **distributed quantum computing** simulation layer.  It models multi-QPU execution of quantum circuits where non-local (inter-QPU) gates are realized through entanglement-assisted protocols over quantum network links.
 
+> See [`qnpack/dqc/ARCHITECTURE.md`](qnpack/dqc/ARCHITECTURE.md) for the full design: module layout, the three entanglement modes (on-demand, pooled, pool-only), and the invariants the implementation depends on.
+
 #### Architecture
 
 - **Controller–QPU–BSM model**: A central controller dispatches per-QPU command streams to multiple QPU nodes, coordinating entanglement generation through intermediate Bell State Measurement (BSM) nodes.
