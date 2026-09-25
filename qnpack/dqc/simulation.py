@@ -208,6 +208,7 @@ class DQCSimulation(Simulation):
 
             results.append(row)
             protocol.stop()
+            self._halt_free_running_clocks(net, run_idx)
 
         results_util.log_measurement_table(results, col_names)
 
@@ -217,6 +218,36 @@ class DQCSimulation(Simulation):
             getattr(frontend, 'num_output_bits', len(col_names)),
             getattr(frontend, 'output_reg_name', 'm'),
         )
+
+    @staticmethod
+    def _halt_free_running_clocks(net, run_idx):
+        """Stop any ``Clock`` still ticking after a run has been torn down.
+
+        The BSM and controller clocks are created with ``max_ticks=-1``, so a
+        clock that outlives its protocol keeps scheduling tick events for
+        ever.  ``ns.sim_run()`` returns only once the event queue drains, so a
+        single orphaned clock makes the *next* run hang indefinitely — with
+        every protocol already stopped, which makes the stall hard to place.
+
+        The protocols now stop their own clocks on teardown, so reaching this
+        helper means something slipped through.  It is a backstop, not the
+        primary fix, and it warns so the real leak is not silently masked.
+        """
+        from netsquid.components.clock import Clock
+
+        stranded = []
+        for node in net.nodes.values():
+            for sub_name, sub in node.subcomponents.items():
+                if isinstance(sub, Clock) and sub.is_running:
+                    sub.stop()
+                    stranded.append(f"{node.name}/{sub_name}")
+
+        if stranded:
+            log.warning(
+                f"--- Run {run_idx}: stopped {len(stranded)} clock(s) still "
+                f"running after teardown: {', '.join(stranded)}.  A clock "
+                f"outliving its protocol would hang the next run."
+            )
 
     @staticmethod
     def _collect_row(frontend, collector, col_names, protocol, run_idx,

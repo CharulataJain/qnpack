@@ -49,6 +49,42 @@ class BSMProtocol(NodeProtocol):
         self.detector = self.node.subcomponents[f"{self.node.name}_Detector"]
         self.clk = self.node.subcomponents[f"{self.node.name}_CLK"]
 
+    def stop(self):
+        """Stop the protocol **and** its free-running detection clock.
+
+        ``run()`` stops ``self.clk`` at the end of each entanglement round,
+        but that line is only reached on the normal path.  Teardown (see
+        :meth:`~.core.DQCProtocol.run`) calls ``stop()`` on every BSM as soon
+        as the active QPUs report done, which discards the generator wherever
+        it happens to be parked — frequently mid-round, after ``clk.start()``
+        and before the matching ``clk.stop()``.
+
+        The clock is built with ``max_ticks=-1``, so once orphaned it keeps
+        scheduling tick events forever.  ``ns.sim_run()`` returns only when
+        the event queue drains, so the *next* run never terminates: the
+        simulation hangs with every protocol already stopped.
+
+        Tying the clock's lifetime to the protocol's makes teardown total,
+        regardless of where the generator was suspended.
+        """
+        super().stop()
+        self._stop_clock()
+
+    def reset(self):
+        """Reset the protocol, ensuring the clock does not survive the reset."""
+        super().reset()
+        self._stop_clock()
+
+    def _stop_clock(self):
+        """Idempotently halt the detection clock."""
+        clk = getattr(self, "clk", None)
+        if clk is not None and clk.is_running:
+            clk.stop()
+            log.debug(
+                f"[{self.node.name}] Detection clock stopped during teardown "
+                f"(num_ticks={clk.num_ticks})"
+            )
+
     def _send_result_to_qpus(self, result_msg, factory=False):
         """Broadcast a BSM result message to both QPU nodes.
 

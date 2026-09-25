@@ -342,6 +342,33 @@ class ControllerProtocol(NodeProtocol):
 
     # ── BSM mapping ──────────────────────────────────────────────────────────
 
+    def stop(self):
+        """Stop the protocol **and** its free-running dispatch clock.
+
+        ``run()`` stops ``self.clk`` once its main loop exits, but teardown
+        can discard the generator while it is parked inside that loop, so the
+        cleanup line is never reached.  ``CtrlCLK`` is created with
+        ``max_ticks=-1`` and would then schedule ticks forever, preventing
+        ``ns.sim_run()`` from ever draining the event queue.
+        """
+        super().stop()
+        self._stop_clock()
+
+    def reset(self):
+        """Reset the protocol, ensuring the clock does not survive the reset."""
+        super().reset()
+        self._stop_clock()
+
+    def _stop_clock(self):
+        """Idempotently halt the dispatch clock."""
+        clk = getattr(self, "clk", None)
+        if clk is not None and clk.is_running:
+            clk.stop()
+            log.debug(
+                f"[{self.node.name}] Dispatch clock stopped during teardown "
+                f"(num_ticks={clk.num_ticks})"
+            )
+
     def _build_qpu_pair_to_bsm_map(self):
         """Map each QPU pair to **every** ``(bsm_id, bsm_label)`` serving it.
 
