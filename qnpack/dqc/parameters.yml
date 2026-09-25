@@ -9,6 +9,18 @@ sim:
   #            Use with Clifford-only circuits (e.g. the GHZ qasm files).
   formalism: "STAB"
 
+topology:
+  file: "topology/topology_v2.json"
+
+results:
+  top_n_bitstrings: 5
+  plot_filename: "dqc_measurements.png"
+
+switch:
+  port_insertion_loss: 0
+  mems_latency_ns: 0.01
+  internal_length_km: 0.01
+
 # Circuit source configuration:
 #   mode: "tket"  — use pytket-dqc dist_commands text file
 #   mode: "cisco" — use Cisco QASM 3.0 file directly
@@ -47,6 +59,13 @@ circuit:
   #   "{2: [21, 20, 23, 22], 1: [23, 22, 21, 20]}" # grover 8q 2qpu
   measure_qubits: "{1: [21, 20], 2: [20], 3: [20]}"
 
+# Bell-pair generation for remote operations:
+#   magic — deliver a perfect Phi+ pair directly to the chosen QPU comm qubits.
+#   bsm   — use the existing photon emission, detector, retry and pool paths.
+entanglement:
+  method: "magic"
+  magic_state_delay_ns: 0
+
 qpu:
   num_qpu_nodes: 3               # Number of QPU nodes (must match topology)
   qubits: 22                     # Default number of qubits per QPU (overridden by topology)
@@ -74,6 +93,8 @@ clock:
   max_ticks: -1
 
 channel:
+  missing_length_km: 1             # Used only when a topology channel omits length
+  simulated_length_km: 0.01        # NetSquid channel length; propagation uses delay model
   q_lightspeed: 200000            # Speed of light in fibre (km/s)
   c_lightspeed: 200000            # Classical signal speed through channel (km/s)
   photon_loss: 0 #0.2                # Photon loss probability in channel (0 = no loss, 0.2 = 0.2 dB/km)
@@ -92,6 +113,8 @@ bsm:
   detection_window: 4320000       # BSM detector gating window (ns)
   system_delay: 0                 # BSM detector system delay (ns)
   coupling_efficiency: 1          # Photon coupling efficiency (0 to 1)
+  detector_dead_time: 0           # Detector dead time (ns)
+  error_on_fail: false            # Raise on unsuccessful detector outcome
   detector_wait_factor: 1.05       # Multiplier on travel time for detector dead wait
   max_emission_retries: 90        # Maximum retry attempts for photon emission
   retry_duration: 0               # Duration between retries (ns)
@@ -108,6 +131,7 @@ epr_factory:
   comm_qubits_reserved: 16
   min_fidelity: 0.9                # Minimum fidelity threshold for pair usability
   check_interval_ns: 1000000       # Freshness check interval during MAINTAIN phase (ns)
+  max_maintain_rounds: 100000       # Maximum factory maintenance sweeps per run
   # Serve *all* entanglement from pools, with no on-demand fallback.  A QPU
   # whose pool is empty waits for refill instead of starting its own BSM
   # round.  Set false to keep the on-demand path as a comparison baseline.
@@ -116,4 +140,3 @@ epr_factory:
   # a few hundred attempts before giving up; exceeding it reports starvation
   # and serves the operation on demand rather than hanging.
   drain_timeout_ns: 5000000
-

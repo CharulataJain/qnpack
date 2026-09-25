@@ -48,9 +48,9 @@ def create_mapper(mapping_list):
 
 def insert_pre_entanglement_commands(
     qpu_commands,
-    expected_ent_latency_ns=None,
-    one_q_gate_duration_ns=5000,
-    two_q_gate_duration_ns=10700,
+    expected_ent_latency_ns,
+    one_q_gate_duration_ns,
+    two_q_gate_duration_ns,
 ):
     """Move ``entanglement_gen`` commands earlier in each QPU's command list.
 
@@ -308,6 +308,12 @@ class ControllerProtocol(NodeProtocol):
         self.start_ready = {}
         # start_label -> set of QPU ids that hold a usable pre-generated pair
         self.start_pool_ready = {}
+        self.start_magic_positions = {}
+        self.magic_distributors = {}
+        self._magic_pending = None
+        self._magic_label = None
+        self.entanglement_timing = None
+        self.add_signal('MAGIC_DELIVERED')
         self.end_qpus = {}
         self.end_ready = {}
 
@@ -625,6 +631,17 @@ class ControllerProtocol(NodeProtocol):
 
     # ── Process maps ─────────────────────────────────────────────────────────
 
+    def _handle_magic_delivery(self, event):
+        """Wait until the distributor has installed both Bell-pair halves."""
+        if self._magic_pending is None:
+            raise RuntimeError('Unexpected magic state delivery')
+        self._magic_pending -= 1
+        if self._magic_pending == 0:
+            self.entanglement_timing.magic_ready(
+                self._magic_label, ns.sim_time()
+            )
+            self.send_signal('MAGIC_DELIVERED')
+
     def process_ready_message(self, msg):
         """Process a ready message from a QPU and store it."""
         item = msg.items[0]
@@ -646,6 +663,10 @@ class ControllerProtocol(NodeProtocol):
             # Track which QPUs can serve this label from their EPR pool.
             if item.get('pool_ready'):
                 self.start_pool_ready.setdefault(start_label, set()).add(recv_qpu)
+            if 'magic_position' in item and item['magic_position'] is not None:
+                self.start_magic_positions.setdefault(start_label, {})[recv_qpu] = (
+                    item['magic_position']
+                )
 
             log.debug(
                 f"[Controller] QPU_{recv_qpu} ready for start_label={start_label} "
@@ -1773,6 +1794,12 @@ class ControllerProtocol(NodeProtocol):
             stats = insert_pre_entanglement_commands(
                 self.qpu_commands,
                 expected_ent_latency_ns=expected_latency,
+                one_q_gate_duration_ns=require_cfg(
+                    self.cfg.gate_durations, 'one_q_gate_duration', 'gate_durations'
+                ),
+                two_q_gate_duration_ns=require_cfg(
+                    self.cfg.gate_durations, 'two_q_gate_duration', 'gate_durations'
+                ),
             )
             self._print_pre_ent_summary(stats)
 
@@ -1852,7 +1879,19 @@ class ControllerProtocol(NodeProtocol):
                     bsm_entry = self.default_bsm_for_pair(qpus_involved)
                     bsm_label = bsm_entry[1] if bsm_entry else None
 
-                    needs_bsm = label in self.entanglement_gen_labels
+                    needs_entanglement = label in self.entanglement_gen_labels
+                    needs_magic = (
+                        needs_entanglement
+                        and self.cfg.entanglement.method == 'magic'
+                    )
+                    needs_bsm = (
+                        needs_entanglement
+                        and self.cfg.entanglement.method == 'bsm'
+                    )
+                    if needs_entanglement:
+                        self.entanglement_timing.start(
+                            label, qpus_involved, ns.sim_time()
+                        )
 
                     # Skip the BSM round only if every party holds a usable
                     # pair; a partial hit leaves one side entangled with
@@ -1879,6 +1918,31 @@ class ControllerProtocol(NodeProtocol):
                     if use_pool:
                         needs_bsm = False
 
+                    if needs_magic:
+                        positions = self.start_magic_positions.get(label, {})
+                        if positions.keys() != qpus_involved:
+                            raise RuntimeError(
+                                f'Missing magic memory positions for {label}: '
+                                f'{positions}'
+                            )
+                        node_positions = {
+                            self.qpu_nodes[qpu_id - 1].ID: position
+                            for qpu_id, position in positions.items()
+                        }
+                        distributor = self.magic_distributors.get(
+                            frozenset(node_positions)
+                        )
+                        if distributor is None:
+                            raise RuntimeError(
+                                f'No magic distributor for QPUs {qpus_involved}'
+                            )
+                        self._magic_pending = len(node_positions)
+                        self._magic_label = label
+                        distributor.add_delivery(memory_positions=node_positions)
+                        yield self.await_signal(self, 'MAGIC_DELIVERED')
+                        self._magic_pending = None
+                        self._magic_label = None
+
                     # Take the BSM before ticking the QPUs into emission.
                     # Waiting out a refill round's short detector window is
                     # cheap; overlapping rounds hang both sides.
@@ -1898,7 +1962,8 @@ class ControllerProtocol(NodeProtocol):
                         self._harvest_refill()
 
                     label_type = (
-                        "entanglement_gen" if needs_bsm
+                        "entanglement_gen[magic]" if needs_magic
+                        else "entanglement_gen" if needs_bsm
                         else ("entanglement_gen[pool]" if use_pool
                               else "starting_process")
                     )
@@ -1921,6 +1986,7 @@ class ControllerProtocol(NodeProtocol):
 
                     self.start_ready[label] = set()
                     self.start_pool_ready.pop(label, None)
+                    self.start_magic_positions.pop(label, None)
                     del self.start_qpus[label]
                 else:
                     qpus_involved = self.end_qpus[label]

@@ -48,12 +48,11 @@ class FidelityTracker:
         Amplitude-damping time constant in nanoseconds.
     T2 : float
         Dephasing time constant in nanoseconds.  Must satisfy T2 ≤ 2·T1.
-    min_fidelity : float, optional
+    min_fidelity : float
         Fidelity threshold below which a pair is considered stale
-        (default 0.9).
     """
 
-    def __init__(self, T1: float, T2: float, min_fidelity: float = 0.9):
+    def __init__(self, T1: float, T2: float, min_fidelity: float):
         if T1 <= 0 or T2 <= 0:
             raise ValueError(
                 f"T1 and T2 must be positive; got T1={T1}, T2={T2}"

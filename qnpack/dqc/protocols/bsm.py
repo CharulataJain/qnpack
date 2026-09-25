@@ -40,7 +40,7 @@ class BSMProtocol(NodeProtocol):
         Protocol name (auto-generated if None).
     """
 
-    def __init__(self, node, bsm_id, cfg=None, channel_length=1, name=None):
+    def __init__(self, node, bsm_id, cfg, channel_length, name=None):
         super().__init__(node, name=name)
         self.bsm_id = bsm_id
         self.cfg = cfg

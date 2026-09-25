@@ -77,6 +77,7 @@ def check_factory_ports():
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     topology = sim.load_topology()
     net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info = (
         sim.setup_network_from_topology(topology)
@@ -143,6 +144,7 @@ def run_sim(case, factory_enabled, runs=RUNS):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
 
     sim.cfg.epr_factory.enabled = factory_enabled
     sim.cfg.epr_factory.pool_size_per_pair = 1   # keep pre-fill short

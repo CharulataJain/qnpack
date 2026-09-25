@@ -59,7 +59,7 @@ def test_import_epr_pool():
     """Import EPRPairPool and EPRPairEntry from the protocols package."""
     from qnpack.dqc.protocols import EPRPairEntry, EPRPairPool
     from qnpack.dqc.protocols.fidelity import FidelityTracker
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     pool = EPRPairPool(local_qpu_id=1, remote_qpu_id=2, capacity=3,
                        fidelity_tracker=ft)
     assert_true(pool.available_count() == 0)
@@ -95,6 +95,7 @@ def test_config_loads_epr_factory():
         os.chdir(os.path.join(os.path.dirname(__file__), "..", "qnpack", "dqc"))
         from qnpack.dqc.sim import DQCSimulation
         sim = DQCSimulation()
+        sim.cfg.entanglement.method = "bsm"
         cfg = sim.cfg
 
         # Check epr_factory section exists
@@ -117,6 +118,7 @@ def test_config_epr_factory_defaults():
         os.chdir(os.path.join(os.path.dirname(__file__), "..", "qnpack", "dqc"))
         from qnpack.dqc.sim import DQCSimulation
         sim = DQCSimulation()
+        sim.cfg.entanglement.method = "bsm"
 
         assert_eq(sim.cfg.epr_factory.enabled, False,
                   msg="Default enabled: ")
@@ -143,6 +145,7 @@ def test_config_override():
         os.chdir(os.path.join(os.path.dirname(__file__), "..", "qnpack", "dqc"))
         from qnpack.dqc.sim import DQCSimulation
         sim = DQCSimulation()
+        sim.cfg.entanglement.method = "bsm"
 
         sim.cfg.epr_factory.enabled = True
         sim.cfg.epr_factory.pool_size_per_pair = 5
@@ -174,6 +177,7 @@ def _run_simulation(factory_enabled, num_runs=3):
     ns.sim_reset()
 
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     sim.cfg.epr_factory.enabled = factory_enabled
     if factory_enabled:
         sim.cfg.epr_factory.pool_size_per_pair = 3

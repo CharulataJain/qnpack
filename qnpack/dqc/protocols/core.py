@@ -12,6 +12,8 @@ Instantiates and manages:
 import logging
 
 import netsquid as ns
+from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
+from netsquid_magic.model_parameters import PerfectModelParameters
 from netsquid.protocols.nodeprotocols import LocalProtocol
 from netsquid.protocols.protocol import Signals
 
@@ -21,6 +23,7 @@ from .bsm import BSMProtocol
 from .switch import QuantumSwitchProtocol
 from .fidelity import FidelityTracker
 from .epr_factory import EPRFactoryProtocol
+from .entanglement_timing import EntanglementTimingTracker
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +50,9 @@ class DQCProtocol(LocalProtocol):
         self.controller_protocol = None
         self.qpu_protocols = []
         self.bsm_protocols = []
-        self.global_entanglement_durations = {}
+        self.entanglement_timing = EntanglementTimingTracker()
+        self.global_entanglement_durations = self.entanglement_timing.durations_s
+        self.magic_distributors = {}
         self._add_subprotocols()
 
     def _add_subprotocols(self):
@@ -64,6 +69,21 @@ class DQCProtocol(LocalProtocol):
             pre_process_maps=self.pre_process_maps,
         )
         self.add_subprotocol(controller_protocol)
+        controller_protocol.entanglement_timing = self.entanglement_timing
+
+        if self.cfg.entanglement.method == 'magic':
+            state_delay = self.cfg.entanglement.magic_state_delay_ns
+            for left_index, left_node in enumerate(self.qpu_nodes):
+                for right_node in self.qpu_nodes[left_index + 1:]:
+                    pair = frozenset((left_node.ID, right_node.ID))
+                    self.magic_distributors[pair] = PerfectStateMagicDistributor(
+                        nodes=[left_node, right_node],
+                        model_params=PerfectModelParameters(state_delay=state_delay),
+                    )
+                    self.magic_distributors[pair].add_callback(
+                        controller_protocol._handle_magic_delivery
+                    )
+            controller_protocol.magic_distributors = self.magic_distributors
 
         # In switch mode, QuantumSwitchProtocol forwards qubits from the QPU
         # input ports to each BSM's left/right output ports using the
@@ -106,17 +126,14 @@ class DQCProtocol(LocalProtocol):
                 name=f"QPUProtocol_{i}"
             )
             qpu_proto.global_entanglement_durations = self.global_entanglement_durations
+            qpu_proto.entanglement_timing = self.entanglement_timing
             self.add_subprotocol(qpu_proto)
 
         sorted_bsm_info = sorted(self.bsm_info.values(), key=lambda x: x["bsm_id"])
         for i, bsm_node in enumerate(self.bsm_nodes, start=1):
-            channel_length = 1
-            if i - 1 < len(sorted_bsm_info):
-                bsm_inf = sorted_bsm_info[i - 1]
-                lengths = bsm_inf.get("channel_lengths", {})
-                q_left = lengths.get("q_left", 1)
-                q_right = lengths.get("q_right", 1)
-                channel_length = max(q_left, q_right)
+            bsm_inf = sorted_bsm_info[i - 1]
+            lengths = bsm_inf["channel_lengths"]
+            channel_length = max(lengths["q_left"], lengths["q_right"])
             bsm_proto = BSMProtocol(
                 node=bsm_node,
                 bsm_id=i,
@@ -156,6 +173,7 @@ class DQCProtocol(LocalProtocol):
         comm_reserved = require_cfg(epr_cfg, 'comm_qubits_reserved', 'epr_factory')
         min_fidelity = require_cfg(epr_cfg, 'min_fidelity', 'epr_factory')
         check_interval = require_cfg(epr_cfg, 'check_interval_ns', 'epr_factory')
+        max_maintain_rounds = require_cfg(epr_cfg, 'max_maintain_rounds', 'epr_factory')
         # Pool-only execution: no on-demand fallback, block until refill
         # delivers (see QPUProtocol._await_pooled_pair).
         pool_only = bool(require_cfg(epr_cfg, 'pool_only', 'epr_factory'))
@@ -221,6 +239,7 @@ class DQCProtocol(LocalProtocol):
                 q_switch=qpu_proto.q_switch,
                 bsm_info=bsm_info,
                 check_interval_ns=check_interval,
+                max_maintain_rounds=max_maintain_rounds,
             )
 
             # Wire factory to QPU protocol
@@ -326,6 +345,9 @@ class DQCProtocol(LocalProtocol):
                     if worker.is_running:
                         worker.stop()
                 proto._bsm_workers.clear()
+
+        for distributor in self.magic_distributors.values():
+            distributor.stop()
 
         log.debug(f"[DQCProtocol] All protocols completed at time {ns.sim_time()}")
         self.send_signal(Signals.SUCCESS)

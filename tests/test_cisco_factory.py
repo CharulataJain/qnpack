@@ -72,6 +72,7 @@ def run(factory_enabled, runs=RUNS):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     sim.cfg.circuit.mode = "cisco"
     sim.cfg.circuit.qasm_file = QASM
     sim.cfg.epr_factory.enabled = factory_enabled

@@ -62,8 +62,13 @@ class DQCSimulation(Simulation):
 
     def load_topology(self, topology_file=None):
         """Load the topology JSON for this simulation."""
+        from qnpack.common.config import require_cfg
+        topology_cfg = require_cfg(self.cfg, 'topology', '<root>')
         return load_topology(
-            topology_file or self._topology_file, base_dir=self.base_dir
+            topology_file or self._topology_file or require_cfg(
+                topology_cfg, 'file', 'topology'
+            ),
+            base_dir=self.base_dir,
         )
 
     def setup_network_from_topology(self, topology_data):
@@ -141,6 +146,8 @@ class DQCSimulation(Simulation):
 
         for run_idx in range(num_runs):
             ns.sim_reset()
+            cfg_util.require_epr_factory_config(self.cfg)
+            cfg_util.require_entanglement_config(self.cfg)
             net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info = \
                 self.setup_network_from_topology(topology_data)
 
@@ -151,8 +158,6 @@ class DQCSimulation(Simulation):
                     measure_qubits = cfg_util.auto_derive_measure_qubits(
                         qpu_info
                     )
-
-            cfg_util.require_epr_factory_config(self.cfg)
 
             protocol = DQCProtocol(
                 self.cfg, network=net, qpu_nodes=qpu_nodes,
@@ -197,13 +202,14 @@ class DQCSimulation(Simulation):
             )
             log.info(
                 f"--- Run {run_idx}: SIMULATION DURATION: "
-                f"{duration_ns} ns ({duration_ns / 1e9:.6f} s) ---"
+                f"{duration_ns} ns ({duration_ns / ns.SECOND:.6f} s) ---"
             )
 
-            row["sim_duration_s"] = duration_ns / 1e9
+            row["sim_duration_s"] = duration_ns / ns.SECOND
             durations = getattr(protocol, 'global_entanglement_durations', None)
             if durations:
                 row["entanglement_durations"] = durations.copy()
+            row["entl_time_s"] = results_util.mean_entanglement_time_per_run(row)
 
             results.append(row)
             protocol.stop()
@@ -310,11 +316,12 @@ class DQCSimulation(Simulation):
 
         ns.set_qstate_formalism(cfg_util.resolve_formalism(self.cfg))
 
-        from qnpack.common.config import MissingConfigError
+        from qnpack.common.config import MissingConfigError, require_cfg
 
         circuit_cfg = getattr(self.cfg, "circuit", None)
         if circuit_cfg is None:
             raise MissingConfigError("circuit", "mode")
+        results_cfg = require_cfg(self.cfg, 'results', '<root>')
         frontend, source = load_frontend(circuit_cfg, base_dir=self.base_dir)
         log.info(
             f"Frontend loaded: mode={circuit_cfg.mode!r}, source={source}"
@@ -346,7 +353,8 @@ class DQCSimulation(Simulation):
             )
 
             counts, top_5 = results_util.summarise_bitstrings(
-                results, col_names
+                results, col_names,
+                require_cfg(results_cfg, 'top_n_bitstrings', 'results'),
             )
 
             final_data.append({
@@ -367,16 +375,24 @@ class DQCSimulation(Simulation):
                 "num_runs": num_runs,
                 "num_output_bits": num_output_bits,
                 "results": results,
+                "mean_entl_time_s": (
+                    results_util.mean_entanglement_time_across_runs(results)
+                ),
                 "top_5_bitstrings": top_5,
             })
 
         results_util.write_csv(
-            final_data, self.output_dir, circuit_cfg, num_runs
+            final_data, self.output_dir, circuit_cfg, num_runs,
+            self.cfg.entanglement.method,
         )
         return final_data
 
-    def plot(self, final_data, filename="12q_1qpu_2qnoise1000.png"):
+    def plot(self, final_data, filename=None):
         """Plot bitstring histograms, one panel per noise configuration."""
+        from qnpack.common.config import require_cfg
+        if filename is None:
+            results_cfg = require_cfg(self.cfg, 'results', '<root>')
+            filename = require_cfg(results_cfg, 'plot_filename', 'results')
         return results_util.plot_histograms(
             final_data, self.output_dir, filename
         )
@@ -472,6 +488,8 @@ class DQCSimulation(Simulation):
 
         if num_runs is None:
             num_runs = self.cfg.sim.iterations
+
+        ns.set_qstate_formalism(cfg_util.resolve_formalism(self.cfg))
 
         labeled_commands = {
             int(k): v

@@ -18,6 +18,21 @@ import pandas
 log = logging.getLogger(__name__)
 
 
+def mean_entanglement_time_per_run(row):
+    """Mean request-to-ready time over Bell pairs in one algorithm run."""
+    durations = row.get('entanglement_durations') or {}
+    return sum(durations.values()) / len(durations) if durations else None
+
+
+def mean_entanglement_time_across_runs(results):
+    """Equal-weight mean of the per-run Bell-pair averages."""
+    per_run = [
+        mean_entanglement_time_per_run(row) for row in results
+    ]
+    measured = [value for value in per_run if value is not None]
+    return sum(measured) / len(measured) if measured else None
+
+
 def row_bitstring(row, col_names):
     """Join one row's per-column bits, using ``?`` for anything missing."""
     return "".join(
@@ -25,7 +40,7 @@ def row_bitstring(row, col_names):
     )
 
 
-def summarise_bitstrings(results, col_names, top_n=5):
+def summarise_bitstrings(results, col_names, top_n):
     """Count bitstrings across *results* and log the most common.
 
     Returns
@@ -63,34 +78,8 @@ def log_measurement_table(results, col_names):
 
 
 def build_noise_label(params):
-    """Describe a noise configuration, omitting anything left at default.
-
-    Returns ``"Noiseless"`` when every parameter is at its default.
-    """
-    parts = []
-    if params["two_q_depolar_prob"] != 0 or params["one_q_depolar_prob"] != 0:
-        parts.append(
-            f"QPU(2q={params['two_q_depolar_prob']}, "
-            f"1q={params['one_q_depolar_prob']})"
-        )
-    if params["T1"] != 600000000 or params["T2"] != 60000000:
-        parts.append(f"Memory(T1={params['T1']}ns, T2={params['T2']}ns)")
-    if params["emission_fidelity"] != 1.0:
-        parts.append(f"Emit(F={params['emission_fidelity']})")
-    if params["photon_loss"] != 0 or params["init_photon_loss"] != 0:
-        parts.append(
-            f"Channel(loss={params['photon_loss']}, "
-            f"init={params['init_photon_loss']})"
-        )
-    if params["fiber_depolar_rate"] != 400:
-        parts.append(f"Fiber(depol={params['fiber_depolar_rate']})")
-    if (params["one_q_gate_duration"] != 5000
-            or params["two_q_gate_duration"] != 107000):
-        parts.append(
-            f"Gates(1q={params['one_q_gate_duration']}ns, "
-            f"2q={params['two_q_gate_duration']}ns)"
-        )
-    return " | ".join(parts) if parts else "Noiseless"
+    """Describe the actual sweep values without assuming a baseline."""
+    return " | ".join(f"{name}={value}" for name, value in params.items())
 
 
 def to_dataframe(final_data):
@@ -102,9 +91,7 @@ def to_dataframe(final_data):
 
         for r in entry["results"]:
             durations = r.get("entanglement_durations") or {}
-            avg_ent = (
-                sum(durations.values()) / len(durations) if durations else None
-            )
+            avg_ent = mean_entanglement_time_per_run(r)
             row = {
                 "noise_label": noise_label,
                 "two_q_depolar_prob": entry["two_q_prob"],
@@ -121,6 +108,9 @@ def to_dataframe(final_data):
                 "run": r.get("run", ""),
                 "bitstring": row_bitstring(r, col_names),
                 "sim_duration_s": r.get("sim_duration_s"),
+                "entanglement_count": len(durations),
+                "entl_time_s": avg_ent,
+                "mean_entl_time_s": entry.get("mean_entl_time_s"),
                 "avg_entanglement_time_s": avg_ent,
             }
             row.update({c: r.get(c) for c in col_names})
@@ -155,50 +145,50 @@ def log_timing_stats(df):
 
 
 def log_entanglement_stats(final_data):
-    """Log how many entanglement events occurred and how long they took."""
+    """Log each run's pair average and the mean across runs."""
     log.info("\n" + "=" * 80)
     log.info("SUCCESSFUL ENTANGLEMENT STATISTICS")
     log.info("=" * 80)
 
-    durations = [
-        d
-        for entry in final_data
-        for r in entry["results"]
-        for d in (r.get("entanglement_durations") or {}).values()
-    ]
-
-    if durations:
-        total_time = sum(durations)
-        count = len(durations)
-        log.info(f"\nTotal number of entanglement events: {count}")
-        log.info(f"Total entanglement time (all events): {total_time:.6f} s")
-        log.info(
-            f"Average entanglement time per event: "
-            f"{total_time / count:.6f} s (= {total_time:.6f} / {count})"
-        )
-    else:
-        log.info("No entanglement data collected")
+    for entry in final_data:
+        log.info(f"Noise configuration: {entry['noise_label']}")
+        for row in entry['results']:
+            mean = mean_entanglement_time_per_run(row)
+            if mean is None:
+                log.info(f"  Run {row['run']}: no Bell pairs generated")
+            else:
+                count = len(row['entanglement_durations'])
+                log.info(
+                    f"  Run {row['run']}: {mean:.9g} s per pair "
+                    f"({count} Bell pairs)"
+                )
+        across_runs = mean_entanglement_time_across_runs(entry['results'])
+        if across_runs is not None:
+            log.info(
+                f"  Mean per-pair time across runs: {across_runs:.9g} s"
+            )
     log.info("=" * 80 + "\n")
 
 
-def csv_filename(circuit_cfg, num_runs):
-    """Name the CSV after the circuit, run count, and scheduling mode."""
+def csv_filename(circuit_cfg, num_runs, entanglement_method):
+    """Name the CSV after circuit, run count, scheduling, and pair method."""
     from qnpack.common.config import require_cfg
 
     pre_scheduled = require_cfg(circuit_cfg, "pre_schedule_entanglement", "circuit")
     tag = "prescheduled" if pre_scheduled else "nopresched"
 
     mode = require_cfg(circuit_cfg, "mode", "circuit")
-    if mode == "cisco":
+    if mode in ("cisco", "cisco_v2"):
         source = require_cfg(circuit_cfg, "qasm_file", "circuit")
     else:
         source = require_cfg(circuit_cfg, "dist_commands_file", "circuit")
 
     stem = os.path.splitext(os.path.basename(source))[0]
-    return f"{stem}_{num_runs}iter_{tag}.csv"
+    return f"{stem}_{num_runs}iter_{tag}_{entanglement_method}.csv"
 
 
-def write_csv(final_data, output_dir, circuit_cfg, num_runs):
+def write_csv(final_data, output_dir, circuit_cfg, num_runs,
+              entanglement_method):
     """Write every run to CSV and log the timing and entanglement stats.
 
     Returns
@@ -212,14 +202,15 @@ def write_csv(final_data, output_dir, circuit_cfg, num_runs):
     log_timing_stats(df)
     log_entanglement_stats(final_data)
 
-    path = os.path.join(output_dir, csv_filename(circuit_cfg, num_runs))
+    path = os.path.join(
+        output_dir, csv_filename(circuit_cfg, num_runs, entanglement_method)
+    )
     df.to_csv(path, index=False)
     log.info(f"Results saved to CSV: {path}")
     return path
 
 
-def plot_histograms(final_data, output_dir,
-                    filename="12q_1qpu_2qnoise1000.png"):
+def plot_histograms(final_data, output_dir, filename):
     """Plot one bitstring histogram per noise configuration, side by side.
 
     Returns

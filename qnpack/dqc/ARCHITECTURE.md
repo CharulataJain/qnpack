@@ -47,6 +47,14 @@ Qubit counts and connectivity come from the topology JSON, never from
 the topology's declared capacity — a QPU declaring 2 communication qubits
 must never be handed position 19.
 
+The topology file path and every tunable network or protocol value are
+declared in [`parameters.yml`](parameters.yml). This includes BSM detector
+settings and clock rate, lengths used when topology data omits a channel
+length, simulated channel length, optical switch settings, and EPR factory
+maintenance limits. A missing required setting stops the run instead of
+selecting a value in Python code. Circuit gate angles and fixed Bell-state
+algebra are defined by the circuit and protocol, respectively.
+
 ### Entanglement, physically
 
 ```mermaid
@@ -140,8 +148,34 @@ the eJPP handlers is silently wrong under cisco — see §6.
 
 ## 4. Entanglement modes
 
-Three modes, selected by [`parameters.yml`](parameters.yml). They share the
-same BSM machinery and differ in *when* pairs are generated.
+`entanglement.method` selects `magic` or `bsm`. In `magic` mode, a
+`PerfectStateMagicDistributor` delivers a perfect Φ⁺ pair directly into the
+chosen communication positions on the two QPUs. The controller waits for both
+halves to arrive before releasing the barrier. The delivery delay is the
+explicit `entanglement.magic_state_delay_ns` value; set it to zero for instant
+generation. This bypasses photon loss, the detector, retries, and generation
+noise. Memory and gate noise after delivery still follow their own settings.
+
+`bsm` keeps the existing on-demand and factory paths described below. The
+BSM EPR factory requires `entanglement.method: bsm`.
+
+### Entanglement timing
+
+For each `entanglement_gen` label, the timer starts when the controller has
+received both QPUs' ready messages. In BSM mode it stops after both memory
+halves are ready, including detector clock waits, every retry, herald travel,
+and required Pauli corrections. In magic mode it stops when the distributor
+has installed both halves. With `magic_state_delay_ns: 0`, generation takes
+zero simulated time. For pooled BSM pairs, the timer measures the time from
+the paired request to both QPUs consuming their pre-generated halves.
+
+Each run's `entl_time_s` is the average over all Bell pairs used by that run.
+`mean_entl_time_s` is the equal-weight average of those per-run means across
+the configured runs. Both values appear in the result CSV, whose filename
+includes the entanglement method so BSM and magic results can coexist.
+
+Within `bsm`, three factory settings selected by [`parameters.yml`](parameters.yml)
+share the same detector machinery and differ in *when* pairs are generated.
 
 | Mode | `enabled` | `pool_only` | Pairs generated |
 |---|---|---|---|

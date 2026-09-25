@@ -34,6 +34,7 @@ dependencies = [
     "networkx",
     "matplotlib",
     "netsquid==1.1.8",
+    "netsquid-magic==16.0.0",
     "netsquid-trappedions==4.0.0",
     "pytket",
     "openqasm3[parser]"
@@ -70,4 +71,5 @@ url = "https://pypi.netsquid.org/"
 
 [tool.uv.sources]
 netsquid = { index = "netsquid" }
+netsquid-magic = { index = "netsquid" }
 netsquid-trappedions = { index = "netsquid" }

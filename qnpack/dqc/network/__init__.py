@@ -11,7 +11,6 @@ Most callers want :func:`build_network` and :func:`load_topology`.
 """
 from .builder import build_network
 from .topology import (
-    DEFAULT_TOPOLOGY_FILE,
     create_bsm_nodes,
     create_controller_node,
     create_qpu_nodes,
@@ -24,5 +23,4 @@ __all__ = [
     "create_qpu_nodes",
     "create_bsm_nodes",
     "create_controller_node",
-    "DEFAULT_TOPOLOGY_FILE",
 ]

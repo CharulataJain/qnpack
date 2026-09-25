@@ -64,14 +64,14 @@ def assert_raises(exc_type, func, *args, **kwargs):
 
 def test_fidelity_at_time_zero():
     """F(0) should always be 1.0."""
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     assert_close(ft.estimated_fidelity(0), 1.0, msg="F(0): ")
     assert_close(ft.estimated_fidelity(-5), 1.0, msg="F(neg): ")
 
 
 def test_fidelity_decays_over_time():
     """F(t) < 1.0 for t > 0."""
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     for t in [1, 100, 1000, 5000, 10000]:
         f = ft.estimated_fidelity(t)
         assert_true(f < 1.0, f"F({t})={f} should be < 1.0")
@@ -80,14 +80,14 @@ def test_fidelity_decays_over_time():
 
 def test_fidelity_asymptote():
     """F(t) → 0.25 as t → ∞."""
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     f_large = ft.estimated_fidelity(1e12)
     assert_close(f_large, 0.25, tol=1e-4, msg="F(∞): ")
 
 
 def test_fidelity_monotone_decreasing():
     """Fidelity should monotonically decrease over time."""
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     times = [0, 10, 100, 500, 1000, 2000, 5000, 10000, 50000, 1e8]
     fidelities = [ft.estimated_fidelity(t) for t in times]
     for i in range(1, len(fidelities)):
@@ -157,7 +157,7 @@ def test_is_stale_negative_age():
 
 def test_asymmetric_equal_params():
     """Asymmetric formula with equal params should match symmetric formula."""
-    ft = FidelityTracker(T1=10000, T2=5000)
+    ft = FidelityTracker(T1=10000, T2=5000, min_fidelity=0.9)
     for t in [0, 100, 1000, 5000, 10000]:
         sym = ft.estimated_fidelity(t)
         asym = FidelityTracker.estimated_fidelity_asymmetric(
@@ -256,12 +256,12 @@ def test_edge_min_fidelity_near_025():
 
 def test_validation_t1_negative():
     """Negative T1 should raise ValueError."""
-    assert_raises(ValueError, FidelityTracker, T1=-100, T2=50)
+    assert_raises(ValueError, FidelityTracker, T1=-100, T2=50, min_fidelity=0.9)
 
 
 def test_validation_t2_too_large():
     """T2 > 2*T1 should raise ValueError."""
-    assert_raises(ValueError, FidelityTracker, T1=100, T2=300)
+    assert_raises(ValueError, FidelityTracker, T1=100, T2=300, min_fidelity=0.9)
 
 
 def test_validation_min_fidelity_out_of_range():

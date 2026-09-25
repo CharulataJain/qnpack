@@ -24,6 +24,7 @@ def run_simulation(factory_enabled, num_runs=3, label=""):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
 
     # Configure factory
     sim.cfg.epr_factory.enabled = factory_enabled

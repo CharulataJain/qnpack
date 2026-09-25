@@ -477,10 +477,10 @@ class EPRFactoryProtocol(NodeProtocol):
         qpu_protocol,
         peer_configs: dict,
         fidelity_tracker: FidelityTracker,
+        check_interval_ns: float,
+        max_maintain_rounds: int,
         q_switch=None,
         bsm_info: dict | None = None,
-        check_interval_ns: float = 1_000_000,
-        max_maintain_rounds: int = 100_000,
     ):
         super().__init__(node, name=f"EPRFactory_{node.name}")
 

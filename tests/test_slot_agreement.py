@@ -89,6 +89,7 @@ def run(sabotage):
 
         ns.sim_reset()
         sim = DQCSimulation()
+        sim.cfg.entanglement.method = "bsm"
         sim.cfg.epr_factory.enabled = True
         sim.cfg.epr_factory.pool_size_per_pair = 2
         sim.cfg.epr_factory.comm_qubits_reserved = 4

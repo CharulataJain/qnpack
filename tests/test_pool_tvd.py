@@ -110,6 +110,7 @@ def run_sim(case, factory_enabled, runs=RUNS, pool_size=4):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
 
     sim.cfg.epr_factory.enabled = factory_enabled
     sim.cfg.epr_factory.pool_size_per_pair = pool_size

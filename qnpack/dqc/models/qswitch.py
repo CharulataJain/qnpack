@@ -447,15 +447,16 @@ class OpticalSwitch(Component, ABC):
     """
 
     def __init__(self, name: str, q_port_names: List[str],
-                 port_insertion_loss: float = 0.0,
-                 loss_model=None,
-                 mems_latency: float = 0.01):
+                 port_insertion_loss: float, mems_latency: float,
+                 q_lightspeed: float, internal_length_km: float,
+                 loss_model=None):
         super().__init__(name=name)
         self.q_port_names = q_port_names
         self.port_insertion_loss = port_insertion_loss
         self.loss_model = loss_model
         self.mems_latency = mems_latency
-        self.delay = FibreDelayModel(c=2e5)
+        self.internal_length_km = internal_length_km
+        self.delay = FibreDelayModel(c=q_lightspeed * 1000)
         self.add_ports(q_port_names)
 
         # Internal quantum channels: (port_a, port_b) -> QuantumChannel
@@ -467,11 +468,11 @@ class OpticalSwitch(Component, ABC):
         # Qubit tracking for debugging
         self.qubit_log: List[QuantumMessage] = []
 
-    def _make_qchannel(self, name: str, length_km: float = 0.01):
+    def _make_qchannel(self, name: str):
         models = {"delay_model": self.delay}
         if self.loss_model is not None:
             models["quantum_loss_model"] = self.loss_model
-        return QuantumChannel(name, length=length_km * 1000, models=models)
+        return QuantumChannel(name, length=self.internal_length_km * 1000, models=models)
 
     def configure_route(self, port_src: str, port_dst: str, active: bool = True):
         """Configure a route between two ports."""
@@ -509,10 +510,11 @@ class FullMeshOpticalSwitch(OpticalSwitch):
     """
 
     def __init__(self, name: str, q_port_names: List[str],
-                 port_insertion_loss: float = 0.0,
-                 loss_model=None,
-                 mems_latency: float = 0.01):
-        super().__init__(name, q_port_names, port_insertion_loss, loss_model, mems_latency)
+                 port_insertion_loss: float, mems_latency: float,
+                 q_lightspeed: float, internal_length_km: float,
+                 loss_model=None):
+        super().__init__(name, q_port_names, port_insertion_loss, mems_latency,
+                         q_lightspeed, internal_length_km, loss_model)
         self.create_internal_topology()
 
     def create_internal_topology(self):

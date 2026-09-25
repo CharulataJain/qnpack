@@ -273,6 +273,7 @@ class EntanglementWorkerProtocol(NodeProtocol):
                 yield self.await_signal(self, self.NEW_WORK)
 
             target_start_label, cmd = self._work_queue.pop(0)
+            ent_label = cmd['entanglement_label']
 
             if cmd.get('l_local') is not None:
                 l_local = cmd['l_local']
@@ -300,7 +301,7 @@ class EntanglementWorkerProtocol(NodeProtocol):
 
             self._drain_stale_bsm_results(bsm_res_port)
 
-            ent_start_time = ns.sim_time()
+            ent_start_time = parent.entanglement_timing.request_time_ns(ent_label)
             retries = 0
             success = False
             bsm_data = None
@@ -341,24 +342,14 @@ class EntanglementWorkerProtocol(NodeProtocol):
                 else:
                     retries += 1
 
-            ent_end_time = ns.sim_time()
-            ent_duration_ns = ent_end_time - ent_start_time
-
             if success:
-                if (
-                    parent.global_entanglement_durations is not None
-                    and target_start_label not in parent.global_entanglement_durations
-                ):
-                    duration_s = ent_duration_ns / 1e9
-                    parent.global_entanglement_durations[target_start_label] = duration_s
-
                 role = cmd.get('role')
                 apply_corrections = is_link_side if role is None else (role == 'peer')
                 if apply_corrections and bsm_data is not None:
                     if _is_stabilizer_formalism():
                         # STAB: corrections must match the BSM circuit the
                         # detector used, selected by bsm.deterministic_bsm.
-                        if getattr(self.qpu_protocol.cfg.bsm, 'deterministic_bsm', False):
+                        if self.qpu_protocol.cfg.bsm.deterministic_bsm:
                             # CNOT+H+Z-measure BSM:
                             #   [2] = m2=0 → no correction
                             #   [3] = m2=1 → X correction
@@ -382,6 +373,9 @@ class EntanglementWorkerProtocol(NodeProtocol):
                             yield from self._apply_correction(actual_emit, ops.Z)
 
                 parent.occupied_comm_qubits.add(actual_emit)
+                parent.entanglement_timing.endpoint_ready(
+                    ent_label, parent.qpu_id, ns.sim_time()
+                )
                 log.debug(
                     f"[{self.node.name}|Worker] Entanglement SUCCESS for "
                     f"start_label={target_start_label}: actual_emit={actual_emit}, "
@@ -392,6 +386,9 @@ class EntanglementWorkerProtocol(NodeProtocol):
                     f"[{self.node.name}|Worker] Entanglement FAILED for "
                     f"start_label={target_start_label} after {retries} retries"
                 )
+
+            ent_end_time = ns.sim_time()
+            ent_duration_ns = ent_end_time - ent_start_time
 
             parent.bell_pair_buffer[target_start_label] = {
                 'success': success,
@@ -457,6 +454,7 @@ class QPUProtocol(NodeProtocol):
 
         self.bell_pair_buffer: dict = {}
         self.global_entanglement_durations = None
+        self.entanglement_timing = None
 
         # Persistent BSM workers: bsm_label -> EntanglementWorkerProtocol (or SwitchedEntanglementWorker)
         self._bsm_workers: dict = {}
@@ -464,8 +462,8 @@ class QPUProtocol(NodeProtocol):
         self.epr_factory = None  # Set by DQCProtocol when factory is configured
         # Pool-only execution (set by DQCProtocol): always serve remote ops
         # from the pool, waiting for refill instead of an on-demand round.
-        self.pool_only = False
-        self.pool_drain_timeout_ns = 5e6
+        self.pool_only = cfg.epr_factory.pool_only
+        self.pool_drain_timeout_ns = cfg.epr_factory.drain_timeout_ns
         # Pool starvation diagnostics: wait count and total wait time.
         self.pool_starvation_events = 0
         self.pool_starvation_ns = 0.0
@@ -900,7 +898,7 @@ class QPUProtocol(NodeProtocol):
 
     # ── Controller signalling ────────────────────────────────────────────────
 
-    def send_start_ready(self, start_label, pool_ready=False):
+    def send_start_ready(self, start_label, pool_ready=False, magic_position=None):
         """Announce readiness for *start_label* to the controller.
 
         Parameters
@@ -912,12 +910,15 @@ class QPUProtocol(NodeProtocol):
             the label and could therefore skip the BSM round.  The
             controller only skips the round when *all* parties report
             ``True``.
+        magic_position : int or None
+            Communication-memory position selected for direct magic delivery.
         """
         msg = Message(items={
             'type': 'start_ready',
             'start_label': start_label,
             'qpu_id': self.qpu_id,
             'pool_ready': pool_ready,
+            'magic_position': magic_position,
         })
         self.comm_port.tx_output(msg)
         log.debug(
@@ -1034,8 +1035,10 @@ class QPUProtocol(NodeProtocol):
 
         g = gate_name.lower()
 
-        def _p(i, default=0.0):
-            return float(params[i]) * math.pi if len(params) > i else default
+        def _p(i):
+            if len(params) <= i:
+                raise ValueError(f"{gate_name} requires parameter {i} in circuit input")
+            return float(params[i]) * math.pi
 
         q0 = qubits[0] if qubits else 0
 
@@ -1832,12 +1835,36 @@ class QPUProtocol(NodeProtocol):
                     _qubits = op.get('qubits') or []
                     nominated = _qubits[0] if _qubits else None
 
+                use_magic = self.cfg.entanglement.method == 'magic'
+                magic_position = None
+                if use_magic:
+                    if nominated is None:
+                        raise ValueError(
+                            f'Missing communication qubit for {ent_label}'
+                        )
+                    data_qubit = op.get('data_qubit')
+                    exclude = {data_qubit} if data_qubit is not None else set()
+                    magic_position = self.find_free_comm_qubit(
+                        nominated, exclude=exclude
+                    )
+                    if (
+                        magic_position not in range(min(
+                            self.NUM_COMM_QUBITS, self.node.qmemory.num_positions
+                        ))
+                        or magic_position in self.occupied_comm_qubits
+                        or magic_position in exclude
+                    ):
+                        raise RuntimeError(
+                            f'No free communication qubit for {ent_label}'
+                        )
+
                 # ── Can this side be served from the factory pool? ─────
                 # Query only; the pair is consumed below once the controller
                 # confirms both sides can be served.  A nominated qubit still
                 # redirected by an earlier pair cannot take a second one.
                 pool_ready = (
-                    self.epr_factory is not None
+                    not use_magic
+                    and self.epr_factory is not None
                     and self.epr_factory.has_usable_pair(peer_qpu_id, ns.sim_time())
                     and self._comm_remap.get(nominated) is None
                 )
@@ -1855,7 +1882,10 @@ class QPUProtocol(NodeProtocol):
                         peer_qpu_id, ent_label
                     )
 
-                self.send_start_ready(ent_label, pool_ready=pool_ready)
+                self.send_start_ready(
+                    ent_label, pool_ready=pool_ready,
+                    magic_position=magic_position,
+                )
 
                 bsm_label = None
                 use_pool = False
@@ -1880,6 +1910,23 @@ class QPUProtocol(NodeProtocol):
                             f"[{self.node.name}] entanglement_gen: "
                             f"ignoring tick, waiting for ent_label={ent_label}"
                         )
+
+                if use_magic:
+                    if not self._register_comm_remap(nominated, magic_position):
+                        if op.get('l_local') is None:
+                            raise RuntimeError(
+                                f'Cannot remap link qubit for {ent_label}'
+                            )
+                    self.occupied_comm_qubits.add(magic_position)
+                    self.bell_pair_buffer[buffer_key] = {
+                        'success': True,
+                        'bsm_data': None,
+                        'retries': 0,
+                        'actual_emit': magic_position,
+                        'ent_duration_ns': self.cfg.entanglement.magic_state_delay_ns,
+                        'generation_time': ns.sim_time(),
+                    }
+                    continue
 
                 # ── Factory path: consume the pre-generated pair ────────
                 if use_pool:
@@ -1913,6 +1960,9 @@ class QPUProtocol(NodeProtocol):
                         )
                         self.bell_pair_buffer[buffer_key] = pair.to_buffer_entry()
                         self.occupied_comm_qubits.add(pair.comm_qubit_local)
+                        self.entanglement_timing.endpoint_ready(
+                            ent_label, self.qpu_id, ns.sim_time()
+                        )
                         continue
 
                     if pair is not None:

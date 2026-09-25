@@ -96,10 +96,11 @@ class DQCBSMGatedQuantumDetector(GatedQuantumDetector):
         Probability (0 to 1) that an incoming photon is successfully detected.
     """
 
-    def __init__(self, name, detection_window, coupling_efficiency=1, num_input_ports=1,
+    def __init__(self, name, detection_window, coupling_efficiency,
+                 deterministic_bsm, system_delay, dead_time, error_on_fail,
+                 num_input_ports=1,
                  num_output_ports=1, observable=ops.Z, meas_operators=None,
-                 system_delay=0., dead_time=0., models=None, output_meta=None,
-                 error_on_fail=False, properties=None, deterministic_bsm=False):
+                 models=None, output_meta=None, properties=None):
         self.qin0_new_photon = False
         self.qin1_new_photon = False
         self.coupling_efficiency = coupling_efficiency
@@ -226,7 +227,7 @@ class SafeDepolarNoiseModel(QuantumErrorModel):
         If True, *depolar_rate* is a fixed probability per qubit.
     """
 
-    def __init__(self, depolar_rate, time_independent=False, **kwargs):
+    def __init__(self, depolar_rate, time_independent, **kwargs):
         super().__init__(**kwargs)
         self._inner = DepolarNoiseModel(
             depolar_rate=depolar_rate,
@@ -329,6 +330,7 @@ class QPUNodeBuilder:
         one_q_gate_duration: float,
         two_q_gate_duration: float,
         fiber_depolar_rate: float,
+        missing_length_km: float,
         qpu_name_prefix: str = "QPU",
     ):
         self.n = n
@@ -343,6 +345,7 @@ class QPUNodeBuilder:
         self.one_q_gate_duration = one_q_gate_duration
         self.two_q_gate_duration = two_q_gate_duration
         self.fiber_depolar_rate = fiber_depolar_rate
+        self.missing_length_km = missing_length_km
 
     def _create_physical_instructions(self):
         """Define physical instructions available to all QPUs."""
@@ -471,7 +474,7 @@ class QPUNodeBuilder:
                 ch_dir = ch["direction"]
                 neighbor_ref = ch["neighbor"]["systemRef"]
                 neighbor_type = ch["neighbor"].get("type", "")
-                length = ch.get("length", {}).get("value", 1) if "length" in ch else 1
+                length = ch["length"]["value"] if "length" in ch else self.missing_length_km
 
                 if ch_type == "classic_clk" and neighbor_type != "BSMNode":
                     if neighbor_ref not in classical_neighbors:
@@ -581,6 +584,10 @@ def create_gated_bsm_nodes(
     system_delay: int,
     coupling_efficiency: float,
     deterministic_bsm: bool,
+    detector_dead_time: float,
+    error_on_fail: bool,
+    clock_hz: int,
+    max_ticks: int,
 ):
     """Create *n* generic BSM nodes with gated quantum detectors.
 
@@ -630,18 +637,19 @@ def create_gated_bsm_nodes(
         ]
         node = Node(node_name, port_names=port_names)
 
-        clk = Clock(f"{node_name}_CLK", frequency=1000000, max_ticks=-1)
+        clk = Clock(f"{node_name}_CLK", frequency=clock_hz, max_ticks=max_ticks)
         node.add_subcomponent(clk)
 
         bsm_detector = BSMGatedQuantumDetector(
             f"{node_name}_Detector",
             detection_window=detection_window,
             system_delay=system_delay,
+            dead_time=detector_dead_time,
             meas_operators=create_meas_ops(),
             num_input_ports=2,
             num_output_ports=2,
             coupling_efficiency=coupling_efficiency,
-            error_on_fail=False,
+            error_on_fail=error_on_fail,
             deterministic_bsm=deterministic_bsm,
         )
         node.add_subcomponent(bsm_detector)
@@ -660,6 +668,11 @@ def create_bsm_nodes_from_topology(
     system_delay: int,
     coupling_efficiency: float,
     deterministic_bsm: bool,
+    detector_dead_time: float,
+    error_on_fail: bool,
+    clock_hz: int,
+    max_ticks: int,
+    missing_length_km: float,
 ):
     """Create BSM nodes based on topology JSON data.
 
@@ -724,9 +737,9 @@ def create_bsm_nodes_from_topology(
             ch_id = ch["ID"]
             ch_dir = ch["direction"]
             neighbor_ref = ch["neighbor"]["systemRef"]
-            length = ch.get("length", {}).get("value", 1) if "length" in ch else 1
 
             if ch_type == "quantum" and ch_dir == "in":
+                length = ch["length"]["value"] if "length" in ch else missing_length_km
                 if ch_id == "1":
                     left_qpu = neighbor_ref
                     channel_lengths["q_left"] = length
@@ -735,12 +748,14 @@ def create_bsm_nodes_from_topology(
                     channel_lengths["q_right"] = length
 
             elif ch_type == "classic_bsm_result" and ch_dir == "out":
+                length = ch["length"]["value"] if "length" in ch else missing_length_km
                 if ch_id == "3":
                     result_left = {"target": neighbor_ref, "length": length}
                 elif ch_id == "4":
                     result_right = {"target": neighbor_ref, "length": length}
 
             elif ch_type == "classic_clk" and ch_dir == "out":
+                length = ch["length"]["value"] if "length" in ch else missing_length_km
                 if ch_id == "5":
                     clk_left = {"target": neighbor_ref, "length": length}
                 elif ch_id == "6":
@@ -777,18 +792,19 @@ def create_bsm_nodes_from_topology(
         ]
         node = Node(node_name, port_names=port_names)
 
-        clk = Clock(f"{node_name}_CLK", frequency=1000000, max_ticks=-1)
+        clk = Clock(f"{node_name}_CLK", frequency=clock_hz, max_ticks=max_ticks)
         node.add_subcomponent(clk)
 
         bsm_detector = BSMGatedQuantumDetector(
             f"{node_name}_Detector",
             detection_window=detection_window,
             system_delay=system_delay,
+            dead_time=detector_dead_time,
             meas_operators=create_meas_ops(),
             num_input_ports=2,
             num_output_ports=2,
             coupling_efficiency=coupling_efficiency,
-            error_on_fail=False,
+            error_on_fail=error_on_fail,
             deterministic_bsm=deterministic_bsm,
         )
         node.add_subcomponent(bsm_detector)

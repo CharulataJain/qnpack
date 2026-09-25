@@ -82,6 +82,7 @@ def main():
         clog.addHandler(cap)
         ns.sim_reset()
         sim = DQCSimulation()
+        sim.cfg.entanglement.method = "bsm"
 
         if shrink_to is not None:
             # Patch the loaded topology down to a small comm count.

@@ -28,11 +28,6 @@ from qnpack.dqc.models.node_builder import SafeDepolarNoiseModel
 
 log = logging.getLogger(__name__)
 
-# Nominal channel length placeholder: the delay model carries propagation
-# delay, so the topology's real lengths are logged rather than applied.
-CHANNEL_LENGTH_KM = 0.01
-
-
 class ChannelParams:
     """Channel-level physical parameters read from the ``channel:`` config.
 
@@ -49,6 +44,7 @@ class ChannelParams:
         self.init_photon_loss = require_cfg(ch, 'init_photon_loss', 'channel')
         self.fiber_depolar_rate = require_cfg(ch, 'fiber_depolar_rate', 'channel')
         self.time_independent = require_cfg(ch, 'time_independent', 'channel')
+        self.simulated_length_km = require_cfg(ch, 'simulated_length_km', 'channel')
 
     def quantum_models(self):
         """Delay, loss, and noise models for a quantum channel."""
@@ -70,11 +66,11 @@ class ChannelParams:
         return {"delay_model": FibreDelayModel(c=self.c_lightspeed * 1000)}
 
 
-def _connect(net, src, dst, name, port_src, port_dst, label, models=None,
+def _connect(params, net, src, dst, name, port_src, port_dst, label, models=None,
              quantum=False):
     """Add one channel between two nodes."""
     channel_cls = QuantumChannel if quantum else ClassicalChannel
-    kwargs = {"name": name, "length": CHANNEL_LENGTH_KM}
+    kwargs = {"name": name, "length": params.simulated_length_km}
     if models:
         kwargs["models"] = models
     net.add_connection(
@@ -86,31 +82,31 @@ def _connect(net, src, dst, name, port_src, port_dst, label, models=None,
     )
 
 
-def connect_controller(net, ctrl, qpu_nodes, bsm_nodes):
+def connect_controller(net, ctrl, qpu_nodes, bsm_nodes, params):
     """Wire the controller to every QPU and BSM.
 
     Each peer gets three channels: clock out, control out, and comm back.
     """
     for i, node in enumerate(qpu_nodes, start=1):
-        _connect(net, ctrl, node, f"cch_clk_ctrl_to_{node.name}",
+        _connect(params, net, ctrl, node, f"cch_clk_ctrl_to_{node.name}",
                  f"clk{i}_port", "clk_port", f"clk_{node.name}")
-        _connect(net, ctrl, node, f"cch_ctrl_ctrl_to_{node.name}",
+        _connect(params, net, ctrl, node, f"cch_ctrl_ctrl_to_{node.name}",
                  f"ctrl{i}_port", "ctrl_port", f"ctrl_{node.name}")
-        _connect(net, node, ctrl, f"cch_comm_{node.name}_to_ctrl",
+        _connect(params, net, node, ctrl, f"cch_comm_{node.name}_to_ctrl",
                  "comm_port", f"comm{i}_port", f"comm_{node.name}")
         log.debug(f"Controller <-> {node.name}: clk/ctrl/comm wired")
 
     for i, node in enumerate(bsm_nodes, start=1):
-        _connect(net, ctrl, node, f"cch_clk_ctrl_to_{node.name}",
+        _connect(params, net, ctrl, node, f"cch_clk_ctrl_to_{node.name}",
                  f"clk_bsm{i}_port", "clk_port", f"clk_{node.name}")
-        _connect(net, ctrl, node, f"cch_ctrl_ctrl_to_{node.name}",
+        _connect(params, net, ctrl, node, f"cch_ctrl_ctrl_to_{node.name}",
                  f"ctrl_bsm{i}_port", "ctrl_port", f"ctrl_{node.name}")
-        _connect(net, node, ctrl, f"cch_comm_{node.name}_to_ctrl",
+        _connect(params, net, node, ctrl, f"cch_comm_{node.name}_to_ctrl",
                  "comm_port", f"comm_bsm{i}_port", f"comm_{node.name}")
         log.debug(f"Controller <-> {node.name}: clk/ctrl/comm wired")
 
 
-def connect_qpu_classical(net, qpu_info, label_to_qpu_node):
+def connect_qpu_classical(net, qpu_info, label_to_qpu_node, params):
     """Wire the QPU ↔ QPU classical mesh described by the topology."""
     connected = set()
     for label, info in qpu_info.items():
@@ -124,13 +120,13 @@ def connect_qpu_classical(net, qpu_info, label_to_qpu_node):
             neighbor = label_to_qpu_node[neighbor_label]
             neighbor_id = qpu_info[neighbor_label]["qpu_id"]
             c_to, c_from = f"c_to_{neighbor_id}", f"c_from_{qpu_id}"
-            _connect(net, node, neighbor,
+            _connect(params, net, node, neighbor,
                      f"cch_{node.name}_to_{neighbor.name}", c_to, c_from,
                      f"classical_{node.name}_to_{neighbor.name}")
             connected.add((label, neighbor_label))
             log.debug(
                 f"Classical: {node.name}.{c_to} -> {neighbor.name}.{c_from} "
-                f"(length={conn.get('length', 1)} km)"
+                f"(length={conn['length']} km)"
             )
 
 
@@ -147,7 +143,7 @@ def connect_direct_quantum(net, bsm_info, label_to_qpu_node,
                 continue
             qpu_node = label_to_qpu_node[qpu_label]
             _connect(
-                net, qpu_node, bsm_node,
+                params, net, qpu_node, bsm_node,
                 f"qch_{qpu_node.name}_to_{bsm_node.name}",
                 f"q_to_{bsm_label}", f"{bsm_name}_{side}_port",
                 f"quantum_{qpu_node.name}_to_{bsm_node.name}_{side}",
@@ -156,7 +152,7 @@ def connect_direct_quantum(net, bsm_info, label_to_qpu_node,
             log.debug(
                 f"Quantum: {qpu_node.name}.q_to_{bsm_label} -> "
                 f"{bsm_node.name}.{bsm_name}_{side}_port "
-                f"(length={info['channel_lengths'].get(length_key, 1)} km)"
+                f"(length={info['channel_lengths'][length_key]} km)"
             )
 
 
@@ -182,7 +178,7 @@ def connect_bsm_feedback(net, bsm_info, label_to_qpu_node,
                 suffix = "" if side == "left" else "_right"
                 short = "res" if kind == "result" else "clk"
                 _connect(
-                    net, bsm_node, target,
+                    params, net, bsm_node, target,
                     f"cch_bsm_{short}_{bsm_node.name}_to_{target.name}{suffix}",
                     f"{port_prefix}_{side}", f"{qpu_prefix}_{bsm_label}",
                     f"bsm_{short}_{bsm_node.name}_to_{target.name}{suffix}",
@@ -225,7 +221,7 @@ def connect_factory_plane(net, bsm_info, label_to_qpu_node,
                 if qpu_port not in target.ports:
                     target.add_ports([qpu_port])
                 _connect(
-                    net, bsm_node, target,
+                    params, net, bsm_node, target,
                     f"cch_factory_{kind}_{bsm_node.name}_to_"
                     f"{target.name}_{side}",
                     bsm_port, qpu_port,

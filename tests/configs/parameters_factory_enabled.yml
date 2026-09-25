@@ -10,12 +10,28 @@
 sim:
   debug: false
   iterations: 10
+  formalism: "KET"
+
+topology:
+  file: "topology/topology_v2.json"
+
+results:
+  top_n_bitstrings: 5
+  plot_filename: "dqc_measurements.png"
+
+switch:
+  port_insertion_loss: 0
+  mems_latency_ns: 0.01
+  internal_length_km: 0.01
 
 circuit:
   mode: "tket"
   pre_schedule_entanglement: false
   dist_commands_file: "commands/grover_4_2qpu.txt"
   measure_qubits: "{1: [21, 20], 2: [21, 20]}"
+
+entanglement:
+  method: "bsm"
 
 qpu:
   num_qpu_nodes: 2
@@ -40,6 +56,8 @@ clock:
   max_ticks: -1
 
 channel:
+  missing_length_km: 1
+  simulated_length_km: 0.01
   q_lightspeed: 200000
   c_lightspeed: 200000
   photon_loss: 0
@@ -49,9 +67,12 @@ channel:
   time_independent: true
 
 bsm:
+  deterministic_bsm: false
   detection_window: 4320000
   system_delay: 0
   coupling_efficiency: 1
+  detector_dead_time: 0
+  error_on_fail: false
   detector_wait_factor: 1.05
   max_emission_retries: 90
   retry_duration: 0
@@ -62,5 +83,6 @@ epr_factory:
   comm_qubits_reserved: 16
   min_fidelity: 0.9
   check_interval_ns: 1000000
+  max_maintain_rounds: 100000
   pool_only: true
   drain_timeout_ns: 5000000

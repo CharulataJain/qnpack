@@ -9,6 +9,8 @@ wiring functions in :mod:`.channels` in a fixed order.
 """
 import logging
 
+from qnpack.common.config import require_cfg
+
 from netsquid.nodes import Network
 
 from qnpack.dqc.models.switch_node_builder import (
@@ -88,11 +90,11 @@ def build_network(cfg, topology_data):
         log.debug(f"{node.name} Ports: {list(node.ports.keys())}")
 
     # ── Channels ─────────────────────────────────────────────────────────
-    connect_controller(net, ctrl, qpu_nodes, bsm_nodes)
-    connect_qpu_classical(net, qpu_info, label_to_qpu_node)
+    connect_controller(net, ctrl, qpu_nodes, bsm_nodes, params)
+    connect_qpu_classical(net, qpu_info, label_to_qpu_node, params)
 
     if use_switch:
-        _wire_switched(net, qpu_nodes, qpu_info, bsm_nodes, bsm_info, params)
+        _wire_switched(net, qpu_nodes, qpu_info, bsm_nodes, bsm_info, params, cfg)
     else:
         net.q_switch = None
         net.c_switch = None
@@ -109,14 +111,19 @@ def build_network(cfg, topology_data):
     return net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info
 
 
-def _wire_switched(net, qpu_nodes, qpu_info, bsm_nodes, bsm_info, params):
+def _wire_switched(net, qpu_nodes, qpu_info, bsm_nodes, bsm_info, params, cfg):
     """Insert optical and classical switches between the QPUs and BSMs."""
+    switch_cfg = require_cfg(cfg, 'switch', '<root>')
     quantum_switch_node, classical_switch_node, q_switch, c_switch = (
         create_switch_nodes(
             qpu_nodes=qpu_nodes,
             qpu_info=qpu_info,
             bsm_nodes=bsm_nodes,
             bsm_info=bsm_info,
+            port_insertion_loss=require_cfg(switch_cfg, 'port_insertion_loss', 'switch'),
+            mems_latency_ns=require_cfg(switch_cfg, 'mems_latency_ns', 'switch'),
+            q_lightspeed=params.q_lightspeed,
+            internal_length_km=require_cfg(switch_cfg, 'internal_length_km', 'switch'),
         )
     )
     net.add_node(quantum_switch_node)
@@ -136,6 +143,7 @@ def _wire_switched(net, qpu_nodes, qpu_info, bsm_nodes, bsm_info, params):
         init_photon_loss=params.init_photon_loss,
         fiber_depolar_rate=params.fiber_depolar_rate,
         time_independent=params.time_independent,
+        simulated_length_km=params.simulated_length_km,
     )
 
     # DQCProtocol reaches the switches through the network object.

@@ -14,6 +14,7 @@ error message.
 import ast
 import itertools
 import logging
+import math
 from collections import OrderedDict
 
 from netsquid.qubits.qformalism import QFormalism
@@ -30,10 +31,6 @@ SUPPORTED_FORMALISMS = {
     "STAB": QFormalism.STAB,
 }
 
-#: Used when ``sim.formalism`` is absent from the config file.
-DEFAULT_FORMALISM = "KET"
-
-
 def resolve_formalism(cfg):
     """Resolve ``sim.formalism`` into a ``QFormalism`` value.
 
@@ -47,9 +44,7 @@ def resolve_formalism(cfg):
     QFormalism
     """
     sim_cfg = getattr(cfg, "sim", None)
-    formalism_name = str(
-        getattr(sim_cfg, "formalism", DEFAULT_FORMALISM)
-    ).strip().upper()
+    formalism_name = str(require_cfg(sim_cfg, "formalism", "sim")).strip().upper()
     if formalism_name not in SUPPORTED_FORMALISMS:
         raise ValueError(
             f"Unsupported sim.formalism {formalism_name!r}; "
@@ -225,7 +220,44 @@ def require_epr_factory_config(cfg):
         "comm_qubits_reserved",
         "min_fidelity",
         "check_interval_ns",
+        "max_maintain_rounds",
         "pool_only",
         "drain_timeout_ns",
     ):
         require_cfg(epr, key, "epr_factory")
+
+
+def require_entanglement_config(cfg):
+    """Validate the explicit entanglement method and its required settings."""
+    ent = require_cfg(cfg, 'entanglement', '<root>')
+    method = require_cfg(ent, 'method', 'entanglement')
+    if method not in ('magic', 'bsm'):
+        raise ValueError(
+            f"Unsupported entanglement.method {method!r}; expected 'magic' or 'bsm'"
+        )
+    if method == 'magic':
+        delay = require_cfg(ent, 'magic_state_delay_ns', 'entanglement')
+        if (
+            isinstance(delay, bool)
+            or not isinstance(delay, (int, float))
+            or not math.isfinite(delay)
+            or delay < 0
+        ):
+            raise ValueError(
+                'entanglement.magic_state_delay_ns must be a finite, '
+                'nonnegative number'
+            )
+        if require_cfg(cfg.epr_factory, 'enabled', 'epr_factory'):
+            raise ValueError(
+                'entanglement.method=magic requires epr_factory.enabled=false'
+            )
+    else:
+        bsm = require_cfg(cfg, 'bsm', '<root>')
+        for key in (
+            'detection_window', 'system_delay', 'coupling_efficiency',
+            'deterministic_bsm', 'detector_dead_time', 'error_on_fail',
+            'detector_wait_factor',
+            'max_emission_retries', 'retry_duration',
+        ):
+            require_cfg(bsm, key, 'bsm')
+    return method

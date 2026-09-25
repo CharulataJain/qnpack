@@ -99,6 +99,7 @@ def test_bsm_stop_halts_clock_mid_round(in_dqc_dir):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     net, protocol = _build(sim, factory_enabled=False)
 
     bsm_protos = [p for p in protocol.subprotocols.values()
@@ -126,6 +127,7 @@ def test_controller_stop_halts_clock(in_dqc_dir):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     net, protocol = _build(sim, factory_enabled=False)
 
     ctrl = protocol.subprotocols["ControllerProtocol"]
@@ -150,6 +152,7 @@ def test_no_clock_survives_a_run(in_dqc_dir, factory_enabled):
 
     ns.sim_reset()
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     net, protocol = _build(sim, factory_enabled=factory_enabled)
 
     protocol.start()
@@ -176,6 +179,7 @@ def test_multi_run_simulation_terminates(in_dqc_dir, factory_enabled):
     ns.sim_reset()
 
     sim = DQCSimulation()
+    sim.cfg.entanglement.method = "bsm"
     sim.cfg.epr_factory.enabled = factory_enabled
     if factory_enabled:
         sim.cfg.epr_factory.pool_size_per_pair = 3

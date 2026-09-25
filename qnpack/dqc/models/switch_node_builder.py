@@ -79,6 +79,10 @@ def create_switch_nodes(
     qpu_info: dict,
     bsm_nodes: list,
     bsm_info: dict,
+    port_insertion_loss: float,
+    mems_latency_ns: float,
+    q_lightspeed: float,
+    internal_length_km: float,
 ):
     """Create separate QuantumSwitchNode and ClassicalSwitchNode.
 
@@ -152,6 +156,10 @@ def create_switch_nodes(
     q_switch = FullMeshOpticalSwitch(
         name="QuantumSwitch",
         q_port_names=q_port_names,
+        port_insertion_loss=port_insertion_loss,
+        mems_latency=mems_latency_ns,
+        q_lightspeed=q_lightspeed,
+        internal_length_km=internal_length_km,
     )
     log.debug(f"Created FullMeshOpticalSwitch with routing-table ports: {q_port_names}")
 
@@ -235,6 +243,7 @@ def build_switch_connections(
     init_photon_loss: float,
     fiber_depolar_rate: float,
     time_independent: bool,
+    simulated_length_km: float,
 ):
     """Wire the switch nodes into the NetSquid network.
 
@@ -343,7 +352,7 @@ def build_switch_connections(
             quantum_switch_node,
             channel_to=QuantumChannel(
                 name=f"qch_{qpu_name}_to_QuantumSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=qpu_out_port,
@@ -381,7 +390,7 @@ def build_switch_connections(
             bsm_node,
             channel_to=QuantumChannel(
                 name=f"qch_QuantumSwitchNode_to_{bsm_name}_left",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=node_out_left,
@@ -395,7 +404,7 @@ def build_switch_connections(
             bsm_node,
             channel_to=QuantumChannel(
                 name=f"qch_QuantumSwitchNode_to_{bsm_name}_right",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=node_out_right,
@@ -418,7 +427,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_res_left_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="BSM_res_to_left",
@@ -437,7 +446,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_res_right_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="BSM_res_to_right",
@@ -456,7 +465,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_clk_left_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="clk_to_left",
@@ -475,7 +484,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_clk_right_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="clk_to_right",
@@ -502,7 +511,7 @@ def build_switch_connections(
                 classical_switch_node,
                 channel_to=ClassicalChannel(
                     name=f"cch_{switch_key}_{bsm_name}_to_ClassicalSwitchNode",
-                    length=0.01,
+                    length=simulated_length_km,
                     models=c_delay_models,
                 ),
                 port_name_node1=bsm_port,
@@ -532,7 +541,7 @@ def build_switch_connections(
             qpu_node,
             channel_to=ClassicalChannel(
                 name=f"cch_ClassicalSwitchNode_bsm_res_to_{qpu_name}",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1=res_sw_port,
@@ -550,7 +559,7 @@ def build_switch_connections(
             qpu_node,
             channel_to=ClassicalChannel(
                 name=f"cch_ClassicalSwitchNode_clk_to_{qpu_name}",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1=clk_sw_port,
@@ -577,7 +586,7 @@ def build_switch_connections(
                 qpu_node,
                 channel_to=ClassicalChannel(
                     name=f"cch_ClassicalSwitchNode_{switch_key}_to_{qpu_name}",
-                    length=0.01,
+                    length=simulated_length_km,
                     models=c_delay_models,
                 ),
                 port_name_node1=sw_port,

@@ -24,18 +24,14 @@ from qnpack.dqc.models.node_builder import (
 
 log = logging.getLogger(__name__)
 
-DEFAULT_TOPOLOGY_FILE = "topology/topology_v2.json"
-
-
-def load_topology(topology_file=None, base_dir=None):
+def load_topology(topology_file, base_dir=None):
     """Load topology from a local JSON file.
 
     Parameters
     ----------
     topology_file : str or None
-        Path to the topology JSON file.  Defaults to
-        ``topology/topology_v2.json``.  Relative paths are resolved against
-        *base_dir* when that is set.
+        Path to the topology JSON file, supplied by configuration or caller.
+        Relative paths are resolved against *base_dir* when that is set.
     base_dir : str or None
         Directory to resolve a relative *topology_file* against.
 
@@ -44,9 +40,6 @@ def load_topology(topology_file=None, base_dir=None):
     list
         Parsed topology data.
     """
-    if topology_file is None:
-        topology_file = DEFAULT_TOPOLOGY_FILE
-
     if base_dir is not None and not os.path.isabs(topology_file):
         topology_file = os.path.join(base_dir, topology_file)
 
@@ -92,6 +85,7 @@ def create_qpu_nodes(cfg, topology_data, fiber_depolar_rate):
             cfg.gate_durations, 'two_q_gate_duration', 'gate_durations'
         ),
         fiber_depolar_rate=fiber_depolar_rate,
+        missing_length_km=require_cfg(cfg.channel, 'missing_length_km', 'channel'),
     )
     return builder.create_nodes_from_topology(topology_data)
 
@@ -112,6 +106,11 @@ def create_bsm_nodes(cfg, topology_data):
         system_delay=require_cfg(cfg.bsm, 'system_delay', 'bsm'),
         coupling_efficiency=require_cfg(cfg.bsm, 'coupling_efficiency', 'bsm'),
         deterministic_bsm=require_cfg(cfg.bsm, 'deterministic_bsm', 'bsm'),
+        detector_dead_time=require_cfg(cfg.bsm, 'detector_dead_time', 'bsm'),
+        error_on_fail=require_cfg(cfg.bsm, 'error_on_fail', 'bsm'),
+        clock_hz=require_cfg(cfg.clock, 'HZ', 'clock'),
+        max_ticks=require_cfg(cfg.clock, 'max_ticks', 'clock'),
+        missing_length_km=require_cfg(cfg.channel, 'missing_length_km', 'channel'),
     )
 
 

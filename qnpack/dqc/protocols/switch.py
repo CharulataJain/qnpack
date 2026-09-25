@@ -399,6 +399,7 @@ class SwitchedEntanglementWorker(NodeProtocol):
                 yield self.await_signal(self, self.NEW_WORK)
 
             target_start_label, cmd = self._work_queue.pop(0)
+            ent_label = cmd['entanglement_label']
 
             if cmd.get('l_local') is not None:
                 l_local = cmd['l_local']
@@ -432,7 +433,7 @@ class SwitchedEntanglementWorker(NodeProtocol):
 
             self._drain_stale_bsm_results(bsm_res_port)
 
-            ent_start_time = ns.sim_time()
+            ent_start_time = parent.entanglement_timing.request_time_ns(ent_label)
             retries = 0
             success = False
             bsm_data = None
@@ -475,17 +476,7 @@ class SwitchedEntanglementWorker(NodeProtocol):
                 else:
                     retries += 1
 
-            ent_end_time = ns.sim_time()
-            ent_duration_ns = ent_end_time - ent_start_time
-
             if success:
-                if (
-                    parent.global_entanglement_durations is not None
-                    and target_start_label not in parent.global_entanglement_durations
-                ):
-                    duration_s = ent_duration_ns / 1e9
-                    parent.global_entanglement_durations[target_start_label] = duration_s
-
                 role = cmd.get('role')
                 apply_corrections = is_link_side if role is None else (role == 'peer')
                 if apply_corrections and bsm_data is not None:
@@ -496,7 +487,7 @@ class SwitchedEntanglementWorker(NodeProtocol):
                     if _is_stabilizer_formalism():
                         # STAB: corrections must match the BSM circuit the
                         # detector used, selected by bsm.deterministic_bsm.
-                        if getattr(self.qpu_protocol.cfg.bsm, 'deterministic_bsm', False):
+                        if self.qpu_protocol.cfg.bsm.deterministic_bsm:
                             # CNOT+H+Z-measure BSM:
                             #   [2] = m2=0 → no correction
                             #   [3] = m2=1 → X correction
@@ -520,6 +511,9 @@ class SwitchedEntanglementWorker(NodeProtocol):
                             yield from self._apply_correction(actual_emit, ops.Z)
 
                 parent.occupied_comm_qubits.add(actual_emit)
+                parent.entanglement_timing.endpoint_ready(
+                    ent_label, parent.qpu_id, ns.sim_time()
+                )
                 log.debug(
                     f"[{self.node.name}|SwitchedWorker] Entanglement SUCCESS for "
                     f"start_label={target_start_label}: actual_emit={actual_emit}, "
@@ -531,6 +525,9 @@ class SwitchedEntanglementWorker(NodeProtocol):
                     f"start_label={target_start_label} after {retries} retries"
                 )
 
+            ent_end_time = ns.sim_time()
+            ent_duration_ns = ent_end_time - ent_start_time
+
             parent.bell_pair_buffer[target_start_label] = {
                 'success': success,
                 'bsm_data': bsm_data,
@@ -541,5 +538,3 @@ class SwitchedEntanglementWorker(NodeProtocol):
             }
 
             self.send_signal(self.ENTANGLEMENT_DONE, result=target_start_label)
-
-
