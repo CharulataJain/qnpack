@@ -106,6 +106,8 @@ def to_dataframe(final_data):
                 "init_photon_loss": entry["init_photon_loss"],
                 "fiber_depolar_rate": entry["fiber_depolar_rate"],
                 "run": r.get("run", ""),
+                "seed": r.get("seed"),
+                "worker_pid": r.get("worker_pid"),
                 "bitstring": row_bitstring(r, col_names),
                 "sim_duration_s": r.get("sim_duration_s"),
                 "entanglement_count": len(durations),

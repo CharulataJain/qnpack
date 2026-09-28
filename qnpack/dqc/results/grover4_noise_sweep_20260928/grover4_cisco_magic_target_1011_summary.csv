@@ -1,0 +1,13 @@
+algorithm,circuit_mode,entanglement_method,qpu_count,qasm_file,sweep_index,two_q_depolar_prob,one_q_depolar_prob,noise_pair,target_bitstring,target_count,num_runs,target_state_probability,raw_csv
+grover4,cisco,magic,1,qasm/grover4_1qpu.qasm,1,0.0001,1e-05,"2q=1e-04, 1q=1e-05",1011,960,1000,0.96,grover4_cisco_magic_1qpu_2q1e-04_1q1e-05_1000runs.csv
+grover4,cisco,magic,1,qasm/grover4_1qpu.qasm,2,1e-05,1e-06,"2q=1e-05, 1q=1e-06",1011,956,1000,0.956,grover4_cisco_magic_1qpu_2q1e-05_1q1e-06_1000runs.csv
+grover4,cisco,magic,1,qasm/grover4_1qpu.qasm,3,1e-06,1e-07,"2q=1e-06, 1q=1e-07",1011,963,1000,0.963,grover4_cisco_magic_1qpu_2q1e-06_1q1e-07_1000runs.csv
+grover4,cisco,magic,1,qasm/grover4_1qpu.qasm,4,1e-07,1e-08,"2q=1e-07, 1q=1e-08",1011,962,1000,0.962,grover4_cisco_magic_1qpu_2q1e-07_1q1e-08_1000runs.csv
+grover4,cisco,magic,2,qasm/grover4_2qpu.qasm,1,0.0001,1e-05,"2q=1e-04, 1q=1e-05",1011,958,1000,0.958,grover4_cisco_magic_2qpu_2q1e-04_1q1e-05_1000runs.csv
+grover4,cisco,magic,2,qasm/grover4_2qpu.qasm,2,1e-05,1e-06,"2q=1e-05, 1q=1e-06",1011,968,1000,0.968,grover4_cisco_magic_2qpu_2q1e-05_1q1e-06_1000runs.csv
+grover4,cisco,magic,2,qasm/grover4_2qpu.qasm,3,1e-06,1e-07,"2q=1e-06, 1q=1e-07",1011,971,1000,0.971,grover4_cisco_magic_2qpu_2q1e-06_1q1e-07_1000runs.csv
+grover4,cisco,magic,2,qasm/grover4_2qpu.qasm,4,1e-07,1e-08,"2q=1e-07, 1q=1e-08",1011,959,1000,0.959,grover4_cisco_magic_2qpu_2q1e-07_1q1e-08_1000runs.csv
+grover4,cisco,magic,3,qasm/grover4_3qpu.qasm,1,0.0001,1e-05,"2q=1e-04, 1q=1e-05",1011,951,1000,0.951,grover4_cisco_magic_3qpu_2q1e-04_1q1e-05_1000runs.csv
+grover4,cisco,magic,3,qasm/grover4_3qpu.qasm,2,1e-05,1e-06,"2q=1e-05, 1q=1e-06",1011,974,1000,0.974,grover4_cisco_magic_3qpu_2q1e-05_1q1e-06_1000runs.csv
+grover4,cisco,magic,3,qasm/grover4_3qpu.qasm,3,1e-06,1e-07,"2q=1e-06, 1q=1e-07",1011,951,1000,0.951,grover4_cisco_magic_3qpu_2q1e-06_1q1e-07_1000runs.csv
+grover4,cisco,magic,3,qasm/grover4_3qpu.qasm,4,1e-07,1e-08,"2q=1e-07, 1q=1e-08",1011,967,1000,0.967,grover4_cisco_magic_3qpu_2q1e-07_1q1e-08_1000runs.csv

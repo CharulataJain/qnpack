@@ -1,13 +1,15 @@
 sim:
   debug: false
   iterations: 10
+  max_workers: auto             # Or a positive integer; each run gets a fresh process
+  starting_seed: null           # Set an integer for repeatable, distinct run seeds
   # Quantum state formalism:
   #   "KET"  — full state vector. Supports arbitrary (non-Clifford) gates such as
   #            Rz(theta)/CU1(theta), but state size grows exponentially with qubits.
   #   "STAB" — stabilizer (CHP) representation. Scales polynomially so it handles
   #            much larger circuits, but is restricted to Clifford operations.
   #            Use with Clifford-only circuits (e.g. the GHZ qasm files).
-  formalism: "STAB"
+  formalism: "KET"
 
 topology:
   file: "topology/topology_v2.json"
@@ -32,7 +34,7 @@ circuit:
   #dist_commands_file: "commands/grover_4q_3qpu.txt"
   # "commands/dist_commands_4q.txt"
   # Path to the QASM 3.0 file (used when mode=cisco)
-  qasm_file: "qasm/test_ghz.qasm"
+  qasm_file: "qasm/grover4_2qpu.qasm"
   # "qasm/grover4_topv1.qasm"
   # "qasm/grover12_3qpu.qasm"
   # measure_qubits: which memory positions to read per QPU after each run.

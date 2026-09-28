@@ -11,7 +11,6 @@ Coordinates QPU and BSM nodes by:
 """
 
 import os
-import json
 import logging
 
 import netsquid as ns
@@ -1821,10 +1820,6 @@ class ControllerProtocol(NodeProtocol):
             self._refill_queue = self._make_entanglement_queue()
 
         if self.run_idx == 0:
-            with open("qpu_partitioned_commands.json", "w") as f:
-                json.dump(self.qpu_commands, f, indent=2)
-            log.debug("Saved all QPU commands to qpu_partitioned_commands.json")
-
             schedule = self.compute_timeslot_schedule(
                 self.qpu_commands, self.mapping_list
             )

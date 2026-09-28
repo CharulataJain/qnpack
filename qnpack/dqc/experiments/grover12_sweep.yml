@@ -1,0 +1,24 @@
+algorithm: grover12
+parameters_file: grover_baseline.yml
+base_dir: ..
+output_dir: ../results/grover12_portable_sweep
+num_runs: 100
+max_workers: 2
+numerical_threads_per_worker: 1
+starting_seed: 200000
+target_bitstring: '101111111111'
+circuit_mode: cisco
+entanglement_method: magic
+qpu_circuits:
+  1: qasm/grover12_1qpu.qasm
+  2: qasm/grover12_2qpu_10comp_2comm.qasm
+  3: qasm/grover12_3qpu_6comp_2comm.qasm
+noise_pairs:
+  - two_q_depolar_prob: 0.0001
+    one_q_depolar_prob: 0.00001
+  - two_q_depolar_prob: 0.00001
+    one_q_depolar_prob: 0.000001
+  - two_q_depolar_prob: 0.000001
+    one_q_depolar_prob: 0.0000001
+  - two_q_depolar_prob: 0.0000001
+    one_q_depolar_prob: 0.00000001

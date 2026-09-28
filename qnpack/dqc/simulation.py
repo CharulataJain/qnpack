@@ -16,6 +16,15 @@ Three entry points:
 import json
 import logging
 import os
+import secrets
+import multiprocessing as mp
+import copy
+import random
+from concurrent.futures import ProcessPoolExecutor
+from types import SimpleNamespace
+
+import numpy as np
+from munch import munchify
 
 import netsquid as ns
 import pydynaa as pd
@@ -35,6 +44,25 @@ from .network import build_network, load_topology
 log = logging.getLogger(__name__)
 
 
+def _run_isolated(job):
+    """Execute exactly one NetSquid run in a disposable worker process."""
+    config_data, base_dir, topology_data, measure_qubits, run_idx, seed, payload = job
+    simulation = DQCSimulation.__new__(DQCSimulation)
+    simulation.cfg = munchify(config_data)
+    simulation.base_dir = base_dir
+    simulation._last_protocol = None
+    ns.set_qstate_formalism(cfg_util.resolve_formalism(simulation.cfg))
+
+    if payload is None:
+        frontend, _ = load_frontend(simulation.cfg.circuit, base_dir=base_dir)
+    else:
+        frontend = simulation._frontend_for_payload(payload, measure_qubits)
+        simulation._install_labeled_payload(payload)
+
+    return simulation._run_one(run_idx, seed, measure_qubits, frontend,
+                               topology_data)
+
+
 class DQCSimulation(Simulation):
     """Drive a DQC circuit over a simulated quantum network."""
 
@@ -42,10 +70,12 @@ class DQCSimulation(Simulation):
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        ns.set_qstate_formalism(cfg_util.resolve_formalism(self.cfg))
+
         self.base_dir = base_dir
         self._topology_file = topology_file
-        #: Set to the live protocol tree after each run so tests and tooling
-        #: can inspect sub-protocol state (e.g. EPR factory statistics).
+        #: A serializable snapshot of the final run's protocol statistics.
+        #: Live NetSquid objects remain inside their short-lived worker.
         self._last_protocol = None
 
         setup_logging(
@@ -124,104 +154,125 @@ class DQCSimulation(Simulation):
 
     # ── Run loop ─────────────────────────────────────────────────────────
 
-    def _run_single_config(self, num_runs, measure_qubits, frontend,
-                           topology_data):
-        """Run *num_runs* simulations at the current noise settings.
+    def _run_single_config(self, num_runs, measure_qubits, topology_data,
+                           seed_start, run_offset,
+                           max_workers, labeled_payload=None):
+        """Run each trial in a fresh spawned process and preserve run order."""
+        if num_runs <= 0:
+            raise ValueError("num_runs must be positive")
+        jobs = (
+            (self.cfg._munch, self.base_dir, topology_data, measure_qubits,
+             run_idx, seed_start + run_offset + run_idx, labeled_payload)
+            for run_idx in range(num_runs)
+        )
+        completed = self._execute_jobs(jobs, max_workers, num_runs)
 
-        Parameters
-        ----------
-        num_runs : int
-        measure_qubits : dict or None
-            Auto-derived from topology on the first run when ``None``.
-        frontend : BaseFrontend
-        topology_data : list
-
-        Returns
-        -------
-        tuple
-            ``(results, col_names, num_output_bits, output_reg_name)``
-        """
-        results = []
-        col_names = []
-
-        for run_idx in range(num_runs):
-            ns.sim_reset()
-            cfg_util.require_epr_factory_config(self.cfg)
-            cfg_util.require_entanglement_config(self.cfg)
-            net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info = \
-                self.setup_network_from_topology(topology_data)
-
-            if run_idx == 0:
-                self._log_network_summary(qpu_nodes, qpu_info, bsm_nodes,
-                                          bsm_info, ctrl)
-                if measure_qubits is None:
-                    measure_qubits = cfg_util.auto_derive_measure_qubits(
-                        qpu_info
-                    )
-
-            protocol = DQCProtocol(
-                self.cfg, network=net, qpu_nodes=qpu_nodes,
-                controller_node=ctrl, qpu_info=qpu_info,
-                bsm_info=bsm_info, bsm_nodes=bsm_nodes,
-                run_idx=run_idx, frontend=frontend,
-                q_switch=getattr(net, 'q_switch', None),
-                switch_node=getattr(net, 'quantum_switch_node', None),
-            )
-            self._last_protocol = protocol
-
-            collector = (
-                self.setup_datacollector(qpu_nodes, measure_qubits, protocol)
-                if frontend.needs_datacollector else None
-            )
-
-            start_time = ns.sim_time()
-            log.info(
-                f"--- Run {run_idx}: SIMULATION START TIME: {start_time} ns ---"
-            )
-
-            protocol.start()
-            ns.sim_run()
-
-            col_names = frontend.get_col_names(measure_qubits)
-            row = self._collect_row(
-                frontend, collector, col_names, protocol, run_idx, qpu_nodes
-            )
-            row["run"] = run_idx
-            row["bitstring"] = frontend.get_bitstring(row, col_names)
-
-            bit_vals = "  ".join(f"{c}={row.get(c, '?')}" for c in col_names)
-            log.info(
-                f"--- Run {run_idx}: {bit_vals}  =>  "
-                f"bitstring={row['bitstring']} ---"
-            )
-
-            end_time = ns.sim_time()
-            duration_ns = end_time - start_time
-            log.info(
-                f"--- Run {run_idx}: SIMULATION END TIME: {end_time} ns ---"
-            )
-            log.info(
-                f"--- Run {run_idx}: SIMULATION DURATION: "
-                f"{duration_ns} ns ({duration_ns / ns.SECOND:.6f} s) ---"
-            )
-
-            row["sim_duration_s"] = duration_ns / ns.SECOND
-            durations = getattr(protocol, 'global_entanglement_durations', None)
-            if durations:
-                row["entanglement_durations"] = durations.copy()
-            row["entl_time_s"] = results_util.mean_entanglement_time_per_run(row)
-
-            results.append(row)
-            protocol.stop()
-            self._halt_free_running_clocks(net, run_idx)
-
+        results = [item[0] for item in completed]
+        col_names = completed[0][1]
+        self._last_protocol = completed[-1][4]
         results_util.log_measurement_table(results, col_names)
+        return results, col_names, completed[0][2], completed[0][3]
 
+    @staticmethod
+    def _execute_jobs(jobs, max_workers, total_runs):
+        with ProcessPoolExecutor(
+            max_workers=min(max_workers, total_runs),
+            mp_context=mp.get_context("spawn"),
+            max_tasks_per_child=1,
+        ) as executor:
+            return list(executor.map(_run_isolated, jobs))
+
+    def _run_one(self, run_idx, seed, measure_qubits, frontend,
+                 topology_data):
+        """Run a single trial in the worker process."""
+        ns.sim_reset()
+        ns.set_random_state(seed=seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        cfg_util.require_epr_factory_config(self.cfg)
+        cfg_util.require_entanglement_config(self.cfg)
+        net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info = \
+            self.setup_network_from_topology(topology_data)
+
+        if run_idx == 0:
+            self._log_network_summary(qpu_nodes, qpu_info, bsm_nodes,
+                                      bsm_info, ctrl)
+        if measure_qubits is None:
+            measure_qubits = cfg_util.auto_derive_measure_qubits(qpu_info)
+
+        protocol = DQCProtocol(
+            self.cfg, network=net, qpu_nodes=qpu_nodes,
+            controller_node=ctrl, qpu_info=qpu_info,
+            bsm_info=bsm_info, bsm_nodes=bsm_nodes,
+            run_idx=run_idx, frontend=frontend,
+            q_switch=getattr(net, 'q_switch', None),
+            switch_node=getattr(net, 'quantum_switch_node', None),
+        )
+        self._last_protocol = protocol
+
+        collector = (
+            self.setup_datacollector(qpu_nodes, measure_qubits, protocol)
+            if frontend.needs_datacollector else None
+        )
+
+        start_time = ns.sim_time()
+        log.info(
+            f"--- Run {run_idx}: SIMULATION START TIME: {start_time} ns ---"
+        )
+
+        protocol.start()
+        ns.sim_run()
+
+        col_names = frontend.get_col_names(measure_qubits)
+        row = self._collect_row(
+            frontend, collector, col_names, protocol, run_idx, qpu_nodes
+        )
+        row["run"] = run_idx
+        row["seed"] = seed
+        row["worker_pid"] = os.getpid()
+        row["bitstring"] = frontend.get_bitstring(row, col_names)
+
+        bit_vals = "  ".join(f"{c}={row.get(c, '?')}" for c in col_names)
+        log.info(
+            f"--- Run {run_idx}: {bit_vals}  =>  "
+            f"bitstring={row['bitstring']} ---"
+        )
+
+        end_time = ns.sim_time()
+        duration_ns = end_time - start_time
+        log.info(
+            f"--- Run {run_idx}: SIMULATION END TIME: {end_time} ns ---"
+        )
+        log.info(
+            f"--- Run {run_idx}: SIMULATION DURATION: "
+            f"{duration_ns} ns ({duration_ns / ns.SECOND:.6f} s) ---"
+        )
+
+        row["sim_duration_s"] = duration_ns / ns.SECOND
+        durations = getattr(protocol, 'global_entanglement_durations', None)
+        if durations:
+            row["entanglement_durations"] = durations.copy()
+        row["entl_time_s"] = results_util.mean_entanglement_time_per_run(row)
+
+        protocol.stop()
+        self._halt_free_running_clocks(net, run_idx)
+        protocol_snapshot = SimpleNamespace(
+            global_entanglement_durations=dict(
+                getattr(protocol, 'global_entanglement_durations', {})
+            ),
+            subprotocols={
+                name: SimpleNamespace(
+                    epr_factory=SimpleNamespace(stats=dict(factory.stats))
+                )
+                for name, subprotocol in protocol.subprotocols.items()
+                if (factory := getattr(subprotocol, 'epr_factory', None)) is not None
+            },
+        )
         return (
-            results,
-            col_names,
+            row, col_names,
             getattr(frontend, 'num_output_bits', len(col_names)),
             getattr(frontend, 'output_reg_name', 'm'),
+            protocol_snapshot,
         )
 
     @staticmethod
@@ -289,6 +340,33 @@ class DQCSimulation(Simulation):
 
     # ── Entry points ─────────────────────────────────────────────────────
 
+    def _parallel_settings(self, total_runs):
+        from qnpack.common.config import require_cfg
+
+        if total_runs <= 0:
+            raise ValueError('At least one simulation run is required')
+        sim_cfg = require_cfg(self.cfg, 'sim', '<root>')
+        worker_setting = require_cfg(sim_cfg, 'max_workers', 'sim')
+        if worker_setting == 'auto':
+            max_workers = os.cpu_count()
+            if max_workers is None:
+                raise RuntimeError('Cannot detect CPU count; set sim.max_workers')
+        elif isinstance(worker_setting, int) and not isinstance(worker_setting, bool) and worker_setting > 0:
+            max_workers = worker_setting
+        else:
+            raise ValueError('sim.max_workers must be a positive integer or auto')
+
+        maximum_seed = int(np.iinfo(np.uint32).max)
+        if total_runs > maximum_seed + 1:
+            raise ValueError('Too many runs for distinct NetSquid seeds')
+        starting_seed = require_cfg(sim_cfg, 'starting_seed', 'sim')
+        if starting_seed is None:
+            starting_seed = secrets.randbelow(maximum_seed - total_runs + 2)
+        if (not isinstance(starting_seed, int) or isinstance(starting_seed, bool)
+                or starting_seed < 0 or starting_seed + total_runs - 1 > maximum_seed):
+            raise ValueError('sim.starting_seed cannot cover all runs in the NetSquid seed range')
+        return starting_seed, max_workers
+
     def start(self, num_runs=None, qncp_host=None):
         """Run the simulation, sweeping every configured noise combination.
 
@@ -337,20 +415,33 @@ class DQCSimulation(Simulation):
             f"Total combinations: {len(combos)} × {num_runs} runs each"
         )
 
-        final_data = []
-        for combo in combos:
+        seed_start, max_workers = self._parallel_settings(len(combos) * num_runs)
+        log.info('Run seeds start at %s; using up to %s workers', seed_start,
+                 max_workers)
+        scheduled = []
+        for combo_idx, combo in enumerate(combos):
             params = dict(zip(param_names, combo))
             cfg_util.apply_params(self.cfg, params)
-
             noise_label = results_util.build_noise_label(params)
-            log.info(f"=== Config: {noise_label} ===")
+            scheduled.append((params, noise_label, copy.deepcopy(self.cfg._munch)))
 
-            results, col_names, num_output_bits, _ = self._run_single_config(
-                num_runs=num_runs,
-                measure_qubits=measure_qubits,
-                frontend=frontend,
-                topology_data=topology_data,
-            )
+        jobs = (
+            (config_data, self.base_dir, topology_data, measure_qubits,
+             run_idx, seed_start + combo_idx * num_runs + run_idx, None)
+            for combo_idx, (_, _, config_data) in enumerate(scheduled)
+            for run_idx in range(num_runs)
+        )
+        completed = self._execute_jobs(jobs, max_workers, len(combos) * num_runs)
+        self._last_protocol = completed[-1][4]
+
+        final_data = []
+        for combo_idx, (params, noise_label, _) in enumerate(scheduled):
+            config_runs = completed[combo_idx * num_runs:(combo_idx + 1) * num_runs]
+            results = [item[0] for item in config_runs]
+            col_names = config_runs[0][1]
+            num_output_bits = config_runs[0][2]
+            log.info(f"=== Config: {noise_label} ===")
+            results_util.log_measurement_table(results, col_names)
 
             counts, top_5 = results_util.summarise_bitstrings(
                 results, col_names,
@@ -484,12 +575,29 @@ class DQCSimulation(Simulation):
         list of dict
             Result rows, one per run.
         """
-        import copy
-
         if num_runs is None:
             num_runs = self.cfg.sim.iterations
 
-        ns.set_qstate_formalism(cfg_util.resolve_formalism(self.cfg))
+        topology_data = (
+            labeled_payload.get("topology") or self.load_topology()
+        )
+        circuit_cfg = getattr(self.cfg, "circuit", None)
+        measure_qubits = cfg_util.resolve_measure_qubits(circuit_cfg)
+        seed_start, max_workers = self._parallel_settings(num_runs)
+        results, _, _, _ = self._run_single_config(
+            num_runs=num_runs,
+            measure_qubits=measure_qubits,
+            topology_data=topology_data,
+            seed_start=seed_start,
+            run_offset=0,
+            max_workers=max_workers,
+            labeled_payload=labeled_payload,
+        )
+        return results
+
+    def _install_labeled_payload(self, labeled_payload):
+        """Install the plugin's labels inside one disposable worker."""
+        import copy
 
         labeled_commands = {
             int(k): v
@@ -498,14 +606,6 @@ class DQCSimulation(Simulation):
         process_maps = self._restore_process_maps(
             labeled_payload["process_maps"]
         )
-        topology_data = (
-            labeled_payload.get("topology") or self.load_topology()
-        )
-
-        circuit_cfg = getattr(self.cfg, "circuit", None)
-        measure_qubits = cfg_util.resolve_measure_qubits(circuit_cfg)
-        frontend = self._frontend_for_payload(labeled_payload, measure_qubits)
-
         # DQCProtocol takes the plugin's labels at construction so the
         # controller does not re-parse the circuit.
         original_init = DQCProtocol.__init__
@@ -523,17 +623,6 @@ class DQCSimulation(Simulation):
             original_init(protocol, *args, **kwargs)
 
         DQCProtocol.__init__ = patched_init
-        try:
-            results, _, _, _ = self._run_single_config(
-                num_runs=num_runs,
-                measure_qubits=measure_qubits,
-                frontend=frontend,
-                topology_data=topology_data,
-            )
-        finally:
-            DQCProtocol.__init__ = original_init
-
-        return results
 
     @staticmethod
     def _restore_process_maps(raw_maps):
