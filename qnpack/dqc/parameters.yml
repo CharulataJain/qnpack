@@ -2,7 +2,6 @@ sim:
   debug: false
   iterations: 10
   max_workers: auto             # Or a positive integer; each run gets a fresh process
-  starting_seed: null           # Set an integer for repeatable, distinct run seeds
   # Quantum state formalism:
   #   "KET"  — full state vector. Supports arbitrary (non-Clifford) gates such as
   #            Rz(theta)/CU1(theta), but state size grows exponentially with qubits.
@@ -65,7 +64,7 @@ circuit:
 #   magic — deliver a perfect Phi+ pair directly to the chosen QPU comm qubits.
 #   bsm   — use the existing photon emission, detector, retry and pool paths.
 entanglement:
-  method: "magic"
+  method: "bsm"
   magic_state_delay_ns: 0
 
 qpu:
@@ -73,16 +72,16 @@ qpu:
   qubits: 22                     # Default number of qubits per QPU (overridden by topology)
   two_q_depolar_prob: 0          # 0.0001  — depolarising probability after every 2-qubit gate (cx, CU1, CNOT)
   one_q_depolar_prob: 0          # 0.00001 — depolarising probability after every 1-qubit gate (h, x, z, rz, sx, sdg, u1, u2, u3, s)
-  emission_fidelity: 1           # photon emission fidelity (1.0 = perfect)
+  emission_fidelity: 0.99           # photon emission fidelity (1.0 = perfect)
   emission_duration: 0           # Duration of photon emission (ns)
-  collection_efficiency: 1       # photon collection efficiency (1.0 = no loss)
+  collection_efficiency: 0.85       # photon collection efficiency (1.0 = no loss)
 
 memory:
   noise_model: "T1T2NoiseModel"  # T1T2NoiseModel for trapped ions
-  # T1: 600000000               # T1 coherence time (ns) = infinite (noiseless default)
-  # T2: 60000000               # T2 coherence time (ns) = infinite (noiseless default)
-  T1: 1e15
-  T2: 1e15
+  T1: 1000000000               # T1 coherence time (ns) = infinite (noiseless default)
+  T2: 100000000               # T2 coherence time (ns) = infinite (noiseless default)
+  # T1: 1e15
+  # T2: 1e15
 
 gate_durations:
   one_q_gate_duration: 5000       # 0 ns - instantaneous 1-qubit gates (noiseless default)
@@ -102,7 +101,7 @@ channel:
   photon_loss: 0 #0.2                # Photon loss probability in channel (0 = no loss, 0.2 = 0.2 dB/km)
   init_photon_loss: 0 #0.2           # Initial photon loss due to QFC (0 = no loss, 0.7 = 70% init loss)
   quantum_noise_model: "DepolarNoiseModel"  # Quantum noise model type
-  fiber_depolar_rate: 0 #0.2      # Depolarization rate in fiber.
+  fiber_depolar_rate: 0.2      # Depolarization rate in fiber.
   time_independent: true          # true = rate is direct depol probability per photon (recommended for short channels)
 bsm:
   # BSM circuit style under the STAB formalism (ignored when formalism is KET,

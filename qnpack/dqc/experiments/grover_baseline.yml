@@ -62,7 +62,6 @@ sim:
   formalism: KET
   iterations: 1000
   max_workers: 8
-  starting_seed: 100000
 switch:
   internal_length_km: 0.01
   mems_latency_ns: 0

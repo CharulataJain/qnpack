@@ -25,7 +25,6 @@ REQUIRED_FIELDS = (
     "num_runs",
     "max_workers",
     "numerical_threads_per_worker",
-    "starting_seed",
     "target_bitstring",
     "circuit_mode",
     "entanglement_method",
@@ -59,6 +58,8 @@ def _load_manifest(path):
         raise ValueError("The manifest must be a YAML mapping")
     for field in REQUIRED_FIELDS:
         _required(manifest, field, "manifest")
+    if "starting_seed" in manifest:
+        raise ValueError("Remove starting_seed; each shot uses fresh random state")
 
     algorithm = manifest["algorithm"]
     if not isinstance(algorithm, str) or not re.fullmatch(r"[A-Za-z0-9_]+", algorithm):
@@ -73,9 +74,6 @@ def _load_manifest(path):
     if workers != "auto":
         _positive_int(workers, "max_workers")
     _positive_int(manifest["numerical_threads_per_worker"], "numerical_threads_per_worker")
-    seed = manifest["starting_seed"]
-    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
-        raise ValueError("starting_seed must be a nonnegative integer")
 
     target = manifest["target_bitstring"]
     if not isinstance(target, str) or not target or set(target) - {"0", "1"}:
@@ -124,7 +122,7 @@ def _worker_count(setting):
 
 
 def _run_condition(manifest, paths, run_count, worker_setting, threads_per_worker,
-                   qpu_count, qasm_relative, pair, pair_index, condition_index):
+                   qpu_count, qasm_relative, pair, pair_index):
     algorithm = manifest["algorithm"]
     two_q = pair["two_q_depolar_prob"]
     one_q = pair["one_q_depolar_prob"]
@@ -143,9 +141,10 @@ def _run_condition(manifest, paths, run_count, worker_setting, threads_per_worke
 
     with paths["parameters_file"].open(encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
+    if "starting_seed" in config["sim"]:
+        raise ValueError("Remove sim.starting_seed; each shot uses fresh random state")
     config["sim"]["iterations"] = run_count
     config["sim"]["max_workers"] = worker_setting
-    config["sim"]["starting_seed"] = manifest["starting_seed"] + condition_index * run_count
     config["circuit"]["mode"] = manifest["circuit_mode"]
     config["circuit"]["qasm_file"] = str(qasm_path)
     config["entanglement"]["method"] = manifest["entanglement_method"]
@@ -162,7 +161,6 @@ def _run_condition(manifest, paths, run_count, worker_setting, threads_per_worke
         "num_runs": run_count,
         "max_workers": worker_setting,
         "numerical_threads_per_worker": threads_per_worker,
-        "starting_seed": config["sim"]["starting_seed"],
         "two_q_depolar_prob": two_q,
         "one_q_depolar_prob": one_q,
     }
@@ -213,11 +211,11 @@ def _run_condition(manifest, paths, run_count, worker_setting, threads_per_worke
     if any(float(row["two_q_depolar_prob"]) != two_q
            or float(row["one_q_depolar_prob"]) != one_q for row in rows):
         raise ValueError(f"{raw_path}: noise columns do not match")
-    seeds = {int(row["seed"]) for row in rows}
-    expected_seeds = set(range(config["sim"]["starting_seed"],
-                               config["sim"]["starting_seed"] + run_count))
-    if seeds != expected_seeds:
-        raise ValueError(f"{raw_path}: run seeds do not match")
+    if {int(row["run"]) for row in rows} != set(range(run_count)):
+        raise ValueError(f"{raw_path}: run indices do not match")
+    states = [row["rng_state_sha256"] for row in rows]
+    if any(not state for state in states) or len(set(states)) != run_count:
+        raise ValueError(f"{raw_path}: random states are missing or repeated")
     if min(_worker_count(worker_setting), run_count) > 1:
         if len({row["worker_pid"] for row in rows}) < 2:
             raise ValueError(f"{raw_path}: multiple worker processes were not observed")
@@ -297,18 +295,16 @@ def main(argv=None):
     summaries = []
     combined_rows = []
     combined_fields = None
-    pair_count = len(manifest["noise_pairs"])
-    for qpu_index, (qpu_count, qasm_relative) in enumerate(manifest["qpu_circuits"].items()):
+    for qpu_count, qasm_relative in manifest["qpu_circuits"].items():
         if args.qpu_count is not None and qpu_count != args.qpu_count:
             continue
         for pair_offset, pair in enumerate(manifest["noise_pairs"]):
             pair_index = pair_offset + 1
             if args.noise_pair_index is not None and pair_index != args.noise_pair_index:
                 continue
-            condition_index = qpu_index * pair_count + pair_offset
             summary, fields, rows = _run_condition(
                 manifest, paths, run_count, worker_setting, threads_per_worker,
-                qpu_count, qasm_relative, pair, pair_index, condition_index,
+                qpu_count, qasm_relative, pair, pair_index,
             )
             summaries.append(summary)
             if combined_fields is None:

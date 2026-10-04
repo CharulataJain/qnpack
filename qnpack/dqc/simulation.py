@@ -14,11 +14,12 @@ Three entry points:
 ``_run_single_config()``  the inner loop both of the above share
 """
 import json
+import hashlib
 import logging
 import os
-import secrets
 import multiprocessing as mp
 import copy
+import pickle
 import random
 from concurrent.futures import ProcessPoolExecutor
 from types import SimpleNamespace
@@ -46,7 +47,7 @@ log = logging.getLogger(__name__)
 
 def _run_isolated(job):
     """Execute exactly one NetSquid run in a disposable worker process."""
-    config_data, base_dir, topology_data, measure_qubits, run_idx, seed, payload = job
+    config_data, base_dir, topology_data, measure_qubits, run_idx, payload = job
     simulation = DQCSimulation.__new__(DQCSimulation)
     simulation.cfg = munchify(config_data)
     simulation.base_dir = base_dir
@@ -59,7 +60,7 @@ def _run_isolated(job):
         frontend = simulation._frontend_for_payload(payload, measure_qubits)
         simulation._install_labeled_payload(payload)
 
-    return simulation._run_one(run_idx, seed, measure_qubits, frontend,
+    return simulation._run_one(run_idx, measure_qubits, frontend,
                                topology_data)
 
 
@@ -155,14 +156,13 @@ class DQCSimulation(Simulation):
     # ── Run loop ─────────────────────────────────────────────────────────
 
     def _run_single_config(self, num_runs, measure_qubits, topology_data,
-                           seed_start, run_offset,
                            max_workers, labeled_payload=None):
         """Run each trial in a fresh spawned process and preserve run order."""
         if num_runs <= 0:
             raise ValueError("num_runs must be positive")
         jobs = (
             (self.cfg._munch, self.base_dir, topology_data, measure_qubits,
-             run_idx, seed_start + run_offset + run_idx, labeled_payload)
+             run_idx, labeled_payload)
             for run_idx in range(num_runs)
         )
         completed = self._execute_jobs(jobs, max_workers, num_runs)
@@ -182,13 +182,16 @@ class DQCSimulation(Simulation):
         ) as executor:
             return list(executor.map(_run_isolated, jobs))
 
-    def _run_one(self, run_idx, seed, measure_qubits, frontend,
+    def _run_one(self, run_idx, measure_qubits, frontend,
                  topology_data):
         """Run a single trial in the worker process."""
         ns.sim_reset()
-        ns.set_random_state(seed=seed)
-        random.seed(seed)
-        np.random.seed(seed)
+        ns.set_random_state()
+        random_state_sha256 = hashlib.sha256(
+            pickle.dumps(ns.get_random_state().get_state())
+        ).hexdigest()
+        random.seed()
+        np.random.seed()
         cfg_util.require_epr_factory_config(self.cfg)
         cfg_util.require_entanglement_config(self.cfg)
         net, qpu_nodes, bsm_nodes, ctrl, qpu_info, bsm_info = \
@@ -228,7 +231,7 @@ class DQCSimulation(Simulation):
             frontend, collector, col_names, protocol, run_idx, qpu_nodes
         )
         row["run"] = run_idx
-        row["seed"] = seed
+        row["rng_state_sha256"] = random_state_sha256
         row["worker_pid"] = os.getpid()
         row["bitstring"] = frontend.get_bitstring(row, col_names)
 
@@ -346,6 +349,8 @@ class DQCSimulation(Simulation):
         if total_runs <= 0:
             raise ValueError('At least one simulation run is required')
         sim_cfg = require_cfg(self.cfg, 'sim', '<root>')
+        if 'starting_seed' in sim_cfg:
+            raise ValueError('Remove sim.starting_seed; each shot uses fresh random state')
         worker_setting = require_cfg(sim_cfg, 'max_workers', 'sim')
         if worker_setting == 'auto':
             max_workers = os.cpu_count()
@@ -356,16 +361,7 @@ class DQCSimulation(Simulation):
         else:
             raise ValueError('sim.max_workers must be a positive integer or auto')
 
-        maximum_seed = int(np.iinfo(np.uint32).max)
-        if total_runs > maximum_seed + 1:
-            raise ValueError('Too many runs for distinct NetSquid seeds')
-        starting_seed = require_cfg(sim_cfg, 'starting_seed', 'sim')
-        if starting_seed is None:
-            starting_seed = secrets.randbelow(maximum_seed - total_runs + 2)
-        if (not isinstance(starting_seed, int) or isinstance(starting_seed, bool)
-                or starting_seed < 0 or starting_seed + total_runs - 1 > maximum_seed):
-            raise ValueError('sim.starting_seed cannot cover all runs in the NetSquid seed range')
-        return starting_seed, max_workers
+        return max_workers
 
     def start(self, num_runs=None, qncp_host=None):
         """Run the simulation, sweeping every configured noise combination.
@@ -415,9 +411,8 @@ class DQCSimulation(Simulation):
             f"Total combinations: {len(combos)} × {num_runs} runs each"
         )
 
-        seed_start, max_workers = self._parallel_settings(len(combos) * num_runs)
-        log.info('Run seeds start at %s; using up to %s workers', seed_start,
-                 max_workers)
+        max_workers = self._parallel_settings(len(combos) * num_runs)
+        log.info('Using up to %s workers', max_workers)
         scheduled = []
         for combo_idx, combo in enumerate(combos):
             params = dict(zip(param_names, combo))
@@ -427,8 +422,8 @@ class DQCSimulation(Simulation):
 
         jobs = (
             (config_data, self.base_dir, topology_data, measure_qubits,
-             run_idx, seed_start + combo_idx * num_runs + run_idx, None)
-            for combo_idx, (_, _, config_data) in enumerate(scheduled)
+             run_idx, None)
+            for _, _, config_data in scheduled
             for run_idx in range(num_runs)
         )
         completed = self._execute_jobs(jobs, max_workers, len(combos) * num_runs)
@@ -583,13 +578,11 @@ class DQCSimulation(Simulation):
         )
         circuit_cfg = getattr(self.cfg, "circuit", None)
         measure_qubits = cfg_util.resolve_measure_qubits(circuit_cfg)
-        seed_start, max_workers = self._parallel_settings(num_runs)
+        max_workers = self._parallel_settings(num_runs)
         results, _, _, _ = self._run_single_config(
             num_runs=num_runs,
             measure_qubits=measure_qubits,
             topology_data=topology_data,
-            seed_start=seed_start,
-            run_offset=0,
             max_workers=max_workers,
             labeled_payload=labeled_payload,
         )

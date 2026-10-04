@@ -1,0 +1,23 @@
+source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/parameters.yml
+base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
+output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/grover4_noise_sweep_20260928
+python_executable: /opt/anaconda3/bin/python
+num_runs: 1000
+max_workers: 8
+starting_seed: 100000
+target_bitstring: '1011'
+circuit_mode: cisco
+entanglement_method: magic
+qpu_circuits:
+  1: qasm/grover4_1qpu.qasm
+  2: qasm/grover4_2qpu.qasm
+  3: qasm/grover4_3qpu.qasm
+noise_pairs:
+  - two_q_depolar_prob: 0.0001
+    one_q_depolar_prob: 0.00001
+  - two_q_depolar_prob: 0.00001
+    one_q_depolar_prob: 0.000001
+  - two_q_depolar_prob: 0.000001
+    one_q_depolar_prob: 0.0000001
+  - two_q_depolar_prob: 0.0000001
+    one_q_depolar_prob: 0.00000001

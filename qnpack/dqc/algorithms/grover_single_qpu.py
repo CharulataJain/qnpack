@@ -447,7 +447,7 @@ def run_grover_single_qpu(num_runs=100):
     results = []
     for run_idx in range(num_runs):
         ns.sim_reset()
-        ns.set_random_state(seed=run_idx)
+        ns.set_random_state()
 
         # Build network
         net, ctrl, qpu_node = build_single_qpu_network(num_qubits=5)

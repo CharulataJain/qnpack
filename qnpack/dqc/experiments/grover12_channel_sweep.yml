@@ -1,0 +1,21 @@
+algorithm: grover12
+parameters_file: grover_bsm_ket_channel_baseline.yml
+base_dir: ..
+output_dir: ../results/grover12_bsm_ket_fiber_sweep_20260929
+num_runs: 100
+max_workers: 16
+numerical_threads_per_worker: 1
+target_bitstring: '101111111111'
+circuit_mode: cisco
+entanglement_method: bsm
+formalism: KET
+qpu_circuits:
+  1: qasm/grover12_1qpu.qasm
+  2: qasm/grover12_2qpu_10comp_2comm.qasm
+  3: qasm/grover12_3qpu_6comp_2comm.qasm
+fiber_depolar_rates: [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+plot:
+  width_inches: 8
+  height_inches: 5
+  dpi: 220
+  grid_alpha: 0.3

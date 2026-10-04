@@ -5,7 +5,6 @@ output_dir: ../results/grover12_portable_sweep
 num_runs: 100
 max_workers: 2
 numerical_threads_per_worker: 1
-starting_seed: 200000
 target_bitstring: '101111111111'
 circuit_mode: cisco
 entanglement_method: magic
