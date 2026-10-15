@@ -60,7 +60,7 @@ PYEOF
     # Clear tmp dir of any old CSVs for this n
     rm -f "$TMPOUT"/*"n${n}"*.csv
 
-    conda run -n cisco python3 -m qnpack.dqc.sim \
+    python3 -m qnpack.dqc.sim \
         -p "$cfg" -b "$DQC" -o "$TMPOUT" -n "$RUNS" \
         > "$TMPOUT/${tag}_topup.log" 2>&1
 

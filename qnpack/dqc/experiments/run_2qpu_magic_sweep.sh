@@ -47,7 +47,7 @@ with open(cfg_path, "w") as f:
 PYEOF
 
     echo "START $tag -> $outdir"
-    conda run -n cisco python3 -m qnpack.dqc.sim \
+    python3 -m qnpack.dqc.sim \
         -p "$cfg" -b "$DQC" -o "$outdir" -n "$RUNS" \
         > "$outdir/${tag}.log" 2>&1
 

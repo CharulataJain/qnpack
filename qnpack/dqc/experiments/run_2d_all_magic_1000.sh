@@ -69,7 +69,7 @@ PYEOF
     mkdir -p "$tmpdir"
     rm -f "$tmpdir"/*.csv
 
-    conda run -n cisco python3 -m qnpack.dqc.sim \
+    python3 -m qnpack.dqc.sim \
         -p "$cfg" -b "$DQC" -o "$tmpdir" -n "$needed" \
         > "$outdir/${tag}.log" 2>&1
 
