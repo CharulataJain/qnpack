@@ -1,0 +1,31 @@
+algorithm: grover4
+parameters_file: grover_bsm_ket_channel_baseline.yml
+base_dir: ..
+output_dir: ../results/grover4_bsm_ket_emission_fidelity_sweep_20261004
+num_runs: 500
+max_workers: 16
+numerical_threads_per_worker: 1
+target_bitstring: '1011'
+circuit_mode: cisco
+entanglement_method: bsm
+formalism: KET
+qpu_circuits:
+  1: qasm/grover4_1qpu.qasm
+  2: qasm/grover4_2qpu.qasm
+  3: qasm/grover4_3qpu.qasm
+# channel.fiber_depolar_rate is 0 in the baseline parameters file, so the
+# emitted photon's depolarization P = 4/3 * (1 - F) is the only channel-side
+# noise in play.
+sweep:
+  section: qpu
+  key: emission_fidelity
+  tag: emisfid
+  values: [0.96, 0.97, 0.98, 0.99, 0.995, 0.998, 0.999, 0.9995, 1]
+plot:
+  width_inches: 10
+  height_inches: 5.5
+  dpi: 220
+  grid_alpha: 0.3
+  x_scale: symlog
+  x_linear_threshold: 0.0001
+  x_transform: complement

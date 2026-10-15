@@ -151,12 +151,15 @@ class QASM3V2CommandExtractor(QASMVisitor):
         if not qubits:
             return self.generic_visit(node)
 
-        # Extract parameters directly from AST
+        # Extract parameters directly from AST.
+        # _eval_parameter returns radians; divide by pi to store in "units of pi"
+        # so that qpu.py's _p(i) = params[i] * pi gives back radians correctly.
+        import math as _math
         params = []
         if hasattr(node, 'arguments') and node.arguments:
             for arg in node.arguments:
                 param_val = self._eval_parameter(arg)
-                params.append(param_val)
+                params.append(param_val / _math.pi)
 
         # Special handling for entanglement (2-qubit remote operation)
         if gate_name == 'entanglement' and len(qubits) >= 2:
@@ -354,10 +357,11 @@ class QASM3V2CommandExtractor(QASMVisitor):
                     if not qubit_info:
                         continue
 
+                    import math as _math
                     params = []
                     if hasattr(stmt, 'arguments') and stmt.arguments:
                         for arg in stmt.arguments:
-                            params.append(self._eval_parameter(arg))
+                            params.append(self._eval_parameter(arg) / _math.pi)
 
                     self.qpu_commands.setdefault(qubit_info['qpu_id'], []).append({
                         "op": "if_gate",
@@ -431,7 +435,8 @@ class QASM3V2CommandExtractor(QASMVisitor):
         raise TypeError(f"Could not extract bit name from AST node type {type(bit_node)}")
 
     def _eval_parameter(self, param_node):
-        """Evaluate parameter expression to float (in units of pi)."""
+        """Evaluate parameter expression to float in radians."""
+        import math as _math
         if hasattr(param_node, 'value'):
             return float(param_node.value)
 
@@ -464,11 +469,11 @@ class QASM3V2CommandExtractor(QASMVisitor):
             elif op == '-':
                 return left - right
 
-        # Handle pi constant
+        # Handle pi constant — return in radians
         if hasattr(param_node, 'name'):
             name = str(param_node.name)
             if name == 'pi':
-                return 1.0  # In units of pi
+                return _math.pi
 
         return 0.0
 

@@ -13,13 +13,14 @@ import argparse
 import json
 from pathlib import Path
 
-from .grover_channel_sweep import _load_manifest, _rate_tag
+from .grover_channel_sweep import _load_manifest, _rate_tag, _sweep_spec
 from .grover_sweep import _path, _read_csv, _write_csv
 
 
 # Metadata keys that must agree across every condition in every source
 # directory. Worker and thread counts are excluded: they vary by machine and
-# do not affect the sampled distribution.
+# do not affect the sampled distribution. The swept parameter is excluded at
+# run time, since varying it is the whole point of the sweep.
 SHARED_METADATA = (
     "algorithm", "target_bitstring", "circuit_mode", "entanglement_method",
     "formalism", "num_runs", "two_q_depolar_prob", "one_q_depolar_prob",
@@ -27,8 +28,9 @@ SHARED_METADATA = (
 )
 
 
-def _condition_metadata(source_dir, algorithm, qpu_count, rate, run_count):
-    tag = f"{algorithm}_cisco_bsm_ket_{qpu_count}qpu_fiber{_rate_tag(rate)}_{run_count}runs"
+def _condition_metadata(source_dir, algorithm, qpu_count, rate, run_count, sweep_tag):
+    tag = (f"{algorithm}_cisco_bsm_ket_{qpu_count}qpu_"
+           f"{sweep_tag}{_rate_tag(rate)}_{run_count}runs")
     path = source_dir / f"{tag}.json"
     if not path.is_file():
         raise FileNotFoundError(
@@ -52,7 +54,10 @@ def main(argv=None):
     algorithm = manifest["algorithm"]
     target = manifest["target_bitstring"]
     run_count = manifest["num_runs"]
-    rates = manifest["fiber_depolar_rates"]
+    section, swept_key, rates, sweep_tag = _sweep_spec(manifest)
+    # Varying the swept parameter is the point; comparing it would reject
+    # every legitimate merge.
+    shared_keys = tuple(key for key in SHARED_METADATA if key != swept_key)
     prefix = f"{algorithm}_cisco_bsm_ket"
 
     sources = [directory.expanduser().resolve() for directory in args.source]
@@ -84,9 +89,10 @@ def main(argv=None):
         elif combined_fields != run_fields:
             raise ValueError(f"{runs_path}: raw CSV columns differ from the first source")
 
+        value_column = "swept_value" if "swept_value" in rows[0] else "fiber_depolar_rate"
         for row in rows:
             qpu_count = int(row["qpu_count"])
-            rate = float(row["fiber_depolar_rate"])
+            rate = float(row[value_column])
             if qpu_count not in manifest["qpu_circuits"]:
                 raise ValueError(f"{summary_path}: qpu_count {qpu_count} is absent from the manifest")
             if not any(rate == float(value) for value in rates):
@@ -101,12 +107,13 @@ def main(argv=None):
                     f"{seen[(qpu_count, rate)]} and {directory}")
             seen[(qpu_count, rate)] = directory
 
-            metadata = _condition_metadata(directory, algorithm, qpu_count, rate, run_count)
-            shared = {key: metadata[key] for key in SHARED_METADATA}
+            metadata = _condition_metadata(directory, algorithm, qpu_count, rate,
+                                           run_count, sweep_tag)
+            shared = {key: metadata[key] for key in shared_keys}
             if reference is None:
                 reference = (shared, directory, qpu_count, rate)
             elif shared != reference[0]:
-                differing = sorted(key for key in SHARED_METADATA
+                differing = sorted(key for key in shared_keys
                                    if shared[key] != reference[0][key])
                 raise ValueError(
                     f"{qpu_count} QPU at rate {rate:g} in {directory} disagrees with "
@@ -132,7 +139,8 @@ def main(argv=None):
             report.append("unexpected " + ", ".join(f"{qpu} QPU @ {rate:g}" for qpu, rate in extra))
         raise ValueError("The sources do not cover the manifest exactly: " + "; ".join(report))
 
-    summary_rows.sort(key=lambda row: (int(row["qpu_count"]), float(row["fiber_depolar_rate"])))
+    sort_column = "swept_value" if "swept_value" in summary_rows[0] else "fiber_depolar_rate"
+    summary_rows.sort(key=lambda row: (int(row["qpu_count"]), float(row[sort_column])))
     combined_rows.sort(key=lambda row: (int(row["qpu_count"]), int(row["sweep_index"]),
                                         int(row["run"])))
 

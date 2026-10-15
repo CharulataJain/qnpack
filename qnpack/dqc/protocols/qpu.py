@@ -1010,6 +1010,7 @@ class QPUProtocol(NodeProtocol):
         log.debug(
             f"[{self.node.name}] GATE {gate_name} qubits={qubits} params={params}"
         )
+        resolved = self._resolve_comm_list(qubits)
         yield from self._apply_gate_by_name(gate_name, qubits, params)
 
     def _apply_gate_by_name(self, gate_name, qubits, params=None):
@@ -1234,7 +1235,6 @@ class QPUProtocol(NodeProtocol):
         log.debug(
             f"[{self.node.name}] MEASURE qubit={qubit} clbit={clbit} → {outcome}"
         )
-
         if qubit < self.NUM_COMM_QUBITS:
             self.occupied_comm_qubits.discard(qubit)
             # Measuring consumes the pair half, so retire its remap entry
@@ -1297,7 +1297,6 @@ class QPUProtocol(NodeProtocol):
             f"[{self.node.name}] IF clbit={clbit} "
             f"(={current}) == {cond_value} → gate={gate_name} qubits={qubits}"
         )
-
         if current == cond_value:
             yield from self._apply_gate_by_name(gate_name, qubits, params)
 

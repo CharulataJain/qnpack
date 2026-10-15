@@ -1,0 +1,46 @@
+# Joint sweep: each point bundles a memory coherence time (T1/T2) with a
+# channel loss pair (photon_loss, collection_efficiency). The two axes move
+# together rather than independently, so this does not fit the single-key
+# `sweep:` block in grover_channel_sweep.py — it gets its own small runner,
+# the same pattern as grover4_gate_sweep_20260928/.
+#
+# Held fixed per the request: channel.fiber_depolar_rate = 0,
+# qpu.emission_fidelity = 1, gate depolarization at the baseline file's
+# defaults (two_q=1e-6, one_q=1e-7).
+#
+# num_runs cut to 50 (not the usual 500): one shot of the worst condition
+# (T1=8e8, photon_loss=0.2) exceeded 15 minutes without finishing, almost
+# certainly from BSM emission retries compounding under high photon loss.
+# 500/condition would be a multi-day run; 50 trades precision for a same-day
+# result. See README note once this sweep is written up.
+source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/experiments/grover_bsm_ket_channel_baseline.yml
+base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
+python_executable: /opt/anaconda3/bin/python
+output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/grover4_coherence_photonloss_sweep_20261006
+num_runs: 50
+max_workers: 12
+target_bitstring: '1011'
+qpu_circuits:
+  2: qasm/grover4_2qpu.qasm
+  3: qasm/grover4_3qpu.qasm
+points:
+  - label: "T1=8e8"
+    T1: 800000000
+    T2: 80000000
+    photon_loss: 0.20
+    collection_efficiency: 0.69
+  - label: "T1=1e9"
+    T1: 1000000000
+    T2: 100000000
+    photon_loss: 0.15
+    collection_efficiency: 0.80
+  - label: "T1=1.2e9"
+    T1: 1200000000
+    T2: 120000000
+    photon_loss: 0.10
+    collection_efficiency: 0.85
+  - label: "T1=1.4e9"
+    T1: 1400000000
+    T2: 140000000
+    photon_loss: 0.05
+    collection_efficiency: 0.95

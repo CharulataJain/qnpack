@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import yaml
@@ -25,8 +26,17 @@ REQUIRED_FIELDS = (
     "algorithm", "parameters_file", "base_dir", "output_dir", "num_runs",
     "max_workers", "numerical_threads_per_worker",
     "target_bitstring", "circuit_mode", "entanglement_method", "formalism",
-    "qpu_circuits", "fiber_depolar_rates",
+    "qpu_circuits",
 )
+
+#: The original manifests sweep `channel.fiber_depolar_rate` through a
+#: top-level `fiber_depolar_rates` list. A manifest may instead carry a
+#: `sweep` block naming any parameter to vary; both forms resolve to the
+#: same (section, key, values, tag) specification.
+LEGACY_SWEEP = ("channel", "fiber_depolar_rate", "fiber")
+
+#: Swept parameters the simulator does not echo into its raw CSV, warned once.
+_warned_uncheckable = defaultdict(bool)
 
 
 def _load_manifest(path):
@@ -59,15 +69,38 @@ def _load_manifest(path):
     for count, source in circuits.items():
         _positive_int(count, "qpu_circuits key")
         _path(Path(), source, f"qpu_circuits.{count}")
-    rates = manifest["fiber_depolar_rates"]
-    if not isinstance(rates, list) or not rates:
-        raise ValueError("fiber_depolar_rates must be a nonempty list")
-    for rate in rates:
-        if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not 0 <= rate <= 1:
-            raise ValueError("fiber_depolar_rates must contain probabilities in [0, 1]")
-    if len(set(rates)) != len(rates):
-        raise ValueError("fiber_depolar_rates must be unique")
+    _sweep_spec(manifest)
     return manifest
+
+
+def _sweep_spec(manifest):
+    """Resolve the manifest's sweep to (section, key, values, tag)."""
+    legacy = "fiber_depolar_rates" in manifest
+    block = manifest.get("sweep")
+    if legacy and block is not None:
+        raise ValueError("Give either fiber_depolar_rates or a sweep block, not both")
+    if legacy:
+        section, key, tag = LEGACY_SWEEP
+        values = manifest["fiber_depolar_rates"]
+    elif block is not None:
+        for field in ("section", "key", "tag", "values"):
+            _required(block, field, "manifest.sweep")
+        section, key, tag = block["section"], block["key"], block["tag"]
+        for name, value in (("section", section), ("key", key), ("tag", tag)):
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_]+", value):
+                raise ValueError(f"sweep.{name} must contain only letters, digits, and underscores")
+        values = block["values"]
+    else:
+        raise ValueError("manifest must contain fiber_depolar_rates or a sweep block")
+
+    if not isinstance(values, list) or not values:
+        raise ValueError("The sweep values must be a nonempty list")
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+            raise ValueError("The sweep values must be numbers in [0, 1]")
+    if len(set(values)) != len(values):
+        raise ValueError("The sweep values must be unique")
+    return section, key, values, tag
 
 
 def _load_parameters(path):
@@ -94,12 +127,13 @@ def _rate_tag(rate):
 
 
 def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
-                   qasm_relative, rate, rate_index):
+                   qasm_relative, rate, rate_index, spec):
+    section, key, _, sweep_tag = spec
     qasm_path = _path(paths["base_dir"], qasm_relative, "qasm_file")
     if not qasm_path.is_file():
         raise FileNotFoundError(qasm_path)
     tag = (f"{manifest['algorithm']}_cisco_bsm_ket_{qpu_count}qpu_"
-           f"fiber{_rate_tag(rate)}_{run_count}runs")
+           f"{sweep_tag}{_rate_tag(rate)}_{run_count}runs")
     output_dir = paths["output_dir"]
     raw_path = output_dir / f"{tag}.csv"
     config_path = output_dir / f"{tag}.yml"
@@ -113,7 +147,9 @@ def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
     config["circuit"]["mode"] = manifest["circuit_mode"]
     config["circuit"]["qasm_file"] = str(qasm_path)
     config["entanglement"]["method"] = manifest["entanglement_method"]
-    config["channel"]["fiber_depolar_rate"] = rate
+    if key not in config[section]:
+        raise ValueError(f"parameters.{section}.{key} is absent; cannot sweep it")
+    config[section][key] = rate
     config_text = yaml.safe_dump(config, sort_keys=False)
     metadata = {
         "algorithm": manifest["algorithm"],
@@ -128,7 +164,8 @@ def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
         "num_runs": run_count,
         "max_workers": workers,
         "numerical_threads_per_worker": threads,
-        "fiber_depolar_rate": rate,
+        "swept_parameter": f"{section}.{key}",
+        "fiber_depolar_rate": config["channel"]["fiber_depolar_rate"],
         "two_q_depolar_prob": config["qpu"]["two_q_depolar_prob"],
         "one_q_depolar_prob": config["qpu"]["one_q_depolar_prob"],
         "emission_fidelity": config["qpu"]["emission_fidelity"],
@@ -176,8 +213,15 @@ def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
     if any(len(row["bitstring"]) != len(manifest["target_bitstring"])
            or set(row["bitstring"]) - {"0", "1"} for row in rows):
         raise ValueError(f"{raw_path}: invalid measurement bitstring")
-    if any(float(row["fiber_depolar_rate"]) != rate for row in rows):
-        raise ValueError(f"{raw_path}: fiber depolarization rate does not match")
+    if key in fields:
+        if any(float(row[key]) != rate for row in rows):
+            raise ValueError(f"{raw_path}: {key} does not match the requested value")
+    elif not _warned_uncheckable[section, key]:
+        # The simulator records only a fixed column set; a swept parameter
+        # outside it cannot be confirmed from the raw CSV itself.
+        print(f"NOTE {section}.{key} is not a raw CSV column; its value is "
+              f"verified from the effective config only", flush=True)
+        _warned_uncheckable[section, key] = True
     if {int(row["run"]) for row in rows} != set(range(run_count)):
         raise ValueError(f"{raw_path}: run indices do not match")
     states = [row["rng_state_sha256"] for row in rows]
@@ -195,7 +239,9 @@ def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
         "qpu_count": qpu_count,
         "qasm_file": qasm_relative,
         "sweep_index": rate_index,
-        "fiber_depolar_rate": rate,
+        "swept_parameter": f"{section}.{key}",
+        "swept_value": rate,
+        "fiber_depolar_rate": config["channel"]["fiber_depolar_rate"],
         "target_bitstring": manifest["target_bitstring"],
         "target_count": hits,
         "num_runs": run_count,
@@ -222,8 +268,9 @@ def main(argv=None):
     workers = manifest["max_workers"] if args.max_workers is None else _positive_int(args.max_workers, "--max-workers")
     if args.qpu_count is not None and args.qpu_count not in manifest["qpu_circuits"]:
         raise ValueError("--qpu-count is absent from qpu_circuits")
-    if args.rate_index is not None and not 1 <= args.rate_index <= len(manifest["fiber_depolar_rates"]):
-        raise ValueError("--rate-index is outside fiber_depolar_rates")
+    spec = _sweep_spec(manifest)
+    if args.rate_index is not None and not 1 <= args.rate_index <= len(spec[2]):
+        raise ValueError("--rate-index is outside the sweep values")
     if any(value is not None for value in (args.num_runs, args.max_workers, args.qpu_count, args.rate_index)) and args.output_dir is None:
         raise ValueError("--output-dir is required when overriding or filtering a run")
 
@@ -247,7 +294,7 @@ def main(argv=None):
     summaries = []
     combined_rows = []
     combined_fields = None
-    rates = manifest["fiber_depolar_rates"]
+    rates = spec[2]
     for qpu_count, qasm_relative in manifest["qpu_circuits"].items():
         if args.qpu_count is not None and qpu_count != args.qpu_count:
             continue
@@ -258,7 +305,7 @@ def main(argv=None):
             summary, fields, rows = _run_condition(
                 manifest, paths, run_count, workers,
                 manifest["numerical_threads_per_worker"], qpu_count,
-                qasm_relative, rate, rate_index,
+                qasm_relative, rate, rate_index, spec,
             )
             summaries.append(summary)
             if combined_fields is None:
