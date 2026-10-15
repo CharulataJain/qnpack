@@ -3,7 +3,7 @@
 # 2 lattices x 2 noise levels x 6 n_steps = 24 runs, 500 shots each.
 set -euo pipefail
 
-cd /Users/cjain/Documents/Repositories/charu-qnpack/qnpack
+cd "$(git rev-parse --show-toplevel)"
 DQC=qnpack/dqc
 BASE=$DQC/experiments/plaquette_baseline.yml
 OUT=$DQC/results/plaquette_sweep

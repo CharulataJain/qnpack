@@ -4,7 +4,7 @@
 # Run from: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack
 set -euo pipefail
 
-cd /Users/cjain/Documents/Repositories/charu-qnpack/qnpack
+cd "$(git rev-parse --show-toplevel)"
 DQC=qnpack/dqc
 BASE=$DQC/experiments/plaquette_baseline.yml
 OUT=$DQC/results/plaquette_sweep

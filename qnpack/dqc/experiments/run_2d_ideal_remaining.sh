@@ -2,7 +2,7 @@
 # Run only 2d ideal n6, n8, n10 with deterministic_bsm: true
 set -euo pipefail
 
-cd /Users/cjain/Documents/Repositories/charu-qnpack/qnpack
+cd "$(git rev-parse --show-toplevel)"
 DQC=qnpack/dqc
 BASE=$DQC/experiments/plaquette_baseline_detbsm.yml
 OUT=$DQC/results/plaquette_sweep_detbsm/2d_ideal
