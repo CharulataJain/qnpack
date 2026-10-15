@@ -1,0 +1,929 @@
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+11:28:24 qnpack.dqc.simulation INFO Frontend loaded: mode='cisco_v2', source=qnpack/dqc/qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n2.qasm
+11:28:24 qnpack.dqc.simulation INFO Total combinations: 1 × 500 runs each
+11:28:24 qnpack.dqc.simulation INFO Using up to 11 workers
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+Slot  LBNL-A                                                       LBNL-B                                                       
+--------------------------------------------------------------------------------------------------------------------------------
+0     gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomp_qpu_1_r1c0[0]                                    
+1                                                                  gate _qcomp_qpu_1_r1c1[0]                                    
+2                                                                  gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+3                                                                  gate _qcomp_qpu_1_r1c1[0]                                    
+4                                                                  gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+5                                                                  gate _qcomp_qpu_1_r1c2[0]                                    
+6                                                                  gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+7                                                                  gate _qcomp_qpu_1_r1c2[0]                                    
+8                                                                  gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+9                                                                  gate _qcomp_qpu_1_r1c1[0]                                    
+10                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+11                                                                 gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+12                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+13                                                                 gate _qcomp_qpu_1_r1c3[0]                                    
+14                                                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+15                                                                 gate _qcomp_qpu_1_r1c3[0]                                    
+16                                                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+17                                                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+18                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+19                                                                 gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+20                                                                 gate _qcomp_qpu_1_r1c0[0]                                    
+21                                                                 gate _qcomp_qpu_1_r1c0[0]                                    
+22                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+23                                                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+24                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+25                                                                 gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c0[0]              
+26                                                                 gate _qcomp_qpu_1_r1c0[0]                                    
+27                                                                 gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c0[0]              
+28                                                                 gate _qcomp_qpu_1_r1c0[0]                                    
+29    entanglement_gen _qcomm_qpu_1_r0c0[0], _qcomm_qpu_0_r0c0[0]  entanglement_gen _qcomm_qpu_1_r0c0[0], _qcomm_qpu_0_r0c0[0]  
+30                                                                 gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c0[0]              
+31    entanglement_gen _qcomm_qpu_1_r0c1[0], _qcomm_qpu_0_r0c1[0]  entanglement_gen _qcomm_qpu_1_r0c1[0], _qcomm_qpu_0_r0c1[0]  
+32    gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+33    entanglement_gen _qcomm_qpu_0_r0c2[0], _qcomm_qpu_1_r0c2[0]  entanglement_gen _qcomm_qpu_0_r0c2[0], _qcomm_qpu_1_r0c2[0]  
+34    entanglement_gen _qcomm_qpu_0_r0c3[0], _qcomm_qpu_1_r0c3[0]  entanglement_gen _qcomm_qpu_0_r0c3[0], _qcomm_qpu_1_r0c3[0]  
+35    gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+36    gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+37    entanglement_gen _qcomm_qpu_1_r0c4[0], _qcomm_qpu_0_r0c4[0]  entanglement_gen _qcomm_qpu_1_r0c4[0], _qcomm_qpu_0_r0c4[0]  
+38    gate _qcomp_qpu_0_r1c4[0]                                    measure _qcomm_qpu_1_r0c0[0]                                 
+39    if_gate _qcomm_qpu_0_r0c0[0]                                 gate _qcomm_qpu_1_r0c0[0]                                    
+40    gate _qcomm_qpu_0_r0c0[0], _qcomp_qpu_0_r1c0[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+41    gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c1[0]              
+42    gate _qcomm_qpu_0_r0c0[0]                                                                                                 
+43    measure _qcomm_qpu_0_r0c0[0]                                                                                              
+44    gate _qcomm_qpu_0_r0c0[0]                                                                                                 
+45    entanglement_gen _qcomm_qpu_1_r0c0[0], _qcomm_qpu_0_r0c0[0]  entanglement_gen _qcomm_qpu_1_r0c0[0], _qcomm_qpu_0_r0c0[0]  
+46    if_gate _qcomm_qpu_0_r0c1[0]                                 measure _qcomm_qpu_1_r0c1[0]                                 
+47    gate _qcomm_qpu_0_r0c1[0], _qcomp_qpu_0_r1c0[0]              gate _qcomm_qpu_1_r0c1[0]                                    
+48    gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+49    gate _qcomm_qpu_0_r0c1[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+50    gate _qcomp_qpu_0_r1c1[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+51    gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+52    gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c2[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+53    gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+54    gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+55    gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+56    gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+57    gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+58    gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+59    gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+60    gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+61    gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+62    gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+63    gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+64    gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+65    gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+66    measure _qcomm_qpu_0_r0c1[0]                                                                                              
+67    gate _qcomm_qpu_0_r0c1[0]                                                                                                 
+68    entanglement_gen _qcomm_qpu_0_r0c1[0], _qcomm_qpu_1_r0c1[0]  entanglement_gen _qcomm_qpu_0_r0c1[0], _qcomm_qpu_1_r0c1[0]  
+69    measure _qcomm_qpu_0_r0c2[0]                                 if_gate _qcomm_qpu_1_r0c2[0]                                 
+70    gate _qcomm_qpu_0_r0c2[0]                                    gate _qcomm_qpu_1_r0c2[0], _qcomp_qpu_1_r1c3[0]              
+71    if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+72    gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c3[0]              gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+73                                                                 gate _qcomp_qpu_1_r1c2[0]                                    
+74                                                                 gate _qcomp_qpu_1_r1c2[0]                                    
+75                                                                 gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+76                                                                 gate _qcomp_qpu_1_r1c2[0]                                    
+77                                                                 gate _qcomp_qpu_1_r1c3[0]                                    
+78                                                                 gate _qcomm_qpu_1_r0c2[0]                                    
+79                                                                 measure _qcomm_qpu_1_r0c2[0]                                 
+80                                                                 gate _qcomm_qpu_1_r0c2[0]                                    
+81    entanglement_gen _qcomm_qpu_0_r0c2[0], _qcomm_qpu_1_r0c2[0]  entanglement_gen _qcomm_qpu_0_r0c2[0], _qcomm_qpu_1_r0c2[0]  
+82    measure _qcomm_qpu_0_r0c3[0]                                 if_gate _qcomm_qpu_1_r0c3[0]                                 
+83    gate _qcomm_qpu_0_r0c3[0]                                    gate _qcomm_qpu_1_r0c3[0], _qcomp_qpu_1_r1c3[0]              
+84    if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+85    gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              gate _qcomp_qpu_1_r1c3[0], _qcomp_qpu_1_r1c2[0]              
+86    gate _qcomp_qpu_0_r1c1[0]                                    gate _qcomp_qpu_1_r1c2[0]                                    
+87                                                                 gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+88                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+89                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+90                                                                 gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+91                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+92                                                                 gate _qcomp_qpu_1_r1c2[0]                                    
+93                                                                 gate _qcomp_qpu_1_r1c3[0], _qcomp_qpu_1_r1c2[0]              
+94                                                                 gate _qcomp_qpu_1_r1c2[0]                                    
+95                                                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+96                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+97                                                                 gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+98                                                                 gate _qcomp_qpu_1_r1c0[0]                                    
+99                                                                 gate _qcomp_qpu_1_r1c1[0]                                    
+100                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+101                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+102                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+103                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+104                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+105                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+106                                                                gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c4[0]              
+107                                                                gate _qcomm_qpu_1_r0c3[0]                                    
+108                                                                measure _qcomm_qpu_1_r0c3[0]                                 
+109                                                                gate _qcomm_qpu_1_r0c3[0]                                    
+110   entanglement_gen _qcomm_qpu_1_r0c3[0], _qcomm_qpu_0_r0c3[0]  entanglement_gen _qcomm_qpu_1_r0c3[0], _qcomm_qpu_0_r0c3[0]  
+111   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]              measure _qcomm_qpu_1_r0c4[0]                                 
+112   gate _qcomp_qpu_0_r1c1[0]                                    gate _qcomm_qpu_1_r0c4[0]                                    
+113   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+114   gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c0[0]              
+115   gate _qcomp_qpu_0_r1c0[0]                                    measure _qcomm_qpu_1_r0c0[0]                                 
+116   gate _qcomp_qpu_0_r1c1[0]                                    gate _qcomm_qpu_1_r0c0[0]                                    
+117   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+118   gate _qcomp_qpu_0_r1c1[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+119   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+120   gate _qcomp_qpu_0_r1c3[0]                                    gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+121   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+122   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+123   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+124   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+125   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+126   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+127   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]                                                                           
+128   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+129   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+130   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+131   if_gate _qcomm_qpu_0_r0c4[0]                                                                                              
+132   gate _qcomm_qpu_0_r0c4[0], _qcomp_qpu_0_r1c0[0]                                                                           
+133   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+134   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c0[0]                                                                           
+135   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+136   gate _qcomm_qpu_0_r0c4[0]                                                                                                 
+137   measure _qcomm_qpu_0_r0c4[0]                                                                                              
+138   if_gate _qcomm_qpu_0_r0c0[0]                                                                                              
+139   gate _qcomm_qpu_0_r0c0[0], _qcomp_qpu_0_r1c0[0]                                                                           
+140   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+141   gate _qcomm_qpu_0_r0c0[0]                                                                                                 
+142   measure _qcomm_qpu_0_r0c0[0]                                                                                              
+143   gate _qcomm_qpu_0_r0c0[0]                                                                                                 
+144   entanglement_gen _qcomm_qpu_0_r0c0[0], _qcomm_qpu_1_r0c0[0]  entanglement_gen _qcomm_qpu_0_r0c0[0], _qcomm_qpu_1_r0c0[0]  
+145   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c0[0]              if_gate _qcomm_qpu_1_r0c1[0]                                 
+146   gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomm_qpu_1_r0c1[0], _qcomp_qpu_1_r1c3[0]              
+147   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c1[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+148   measure _qcomm_qpu_0_r0c1[0]                                 gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+149   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c2[0]                                    
+150   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c2[0]              gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+151   gate _qcomm_qpu_0_r0c1[0]                                    gate _qcomp_qpu_1_r1c2[0]                                    
+152                                                                gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+153                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+154                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+155                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+156                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+157                                                                gate _qcomp_qpu_1_r1c3[0]                                    
+158                                                                gate _qcomm_qpu_1_r0c1[0]                                    
+159                                                                measure _qcomm_qpu_1_r0c1[0]                                 
+160                                                                gate _qcomm_qpu_1_r0c1[0]                                    
+161   entanglement_gen _qcomm_qpu_0_r0c1[0], _qcomm_qpu_1_r0c1[0]  entanglement_gen _qcomm_qpu_0_r0c1[0], _qcomm_qpu_1_r0c1[0]  
+162   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]              if_gate _qcomm_qpu_1_r0c2[0]                                 
+163   measure _qcomm_qpu_0_r0c2[0]                                 gate _qcomm_qpu_1_r0c2[0], _qcomp_qpu_1_r1c3[0]              
+164   gate _qcomm_qpu_0_r0c2[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+165   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+166                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+167                                                                gate _qcomp_qpu_1_r1c3[0]                                    
+168                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+169                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+170                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+171                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+172                                                                gate _qcomp_qpu_1_r1c0[0]                                    
+173                                                                gate _qcomp_qpu_1_r1c0[0]                                    
+174                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+175                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+176                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+177                                                                gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c0[0]              
+178                                                                gate _qcomp_qpu_1_r1c0[0]                                    
+179                                                                gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c0[0]              
+180                                                                gate _qcomp_qpu_1_r1c0[0]                                    
+181                                                                gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c3[0]              
+182                                                                gate _qcomm_qpu_1_r0c2[0]                                    
+183                                                                measure _qcomm_qpu_1_r0c2[0]                                 
+184                                                                gate _qcomm_qpu_1_r0c2[0]                                    
+185   entanglement_gen _qcomm_qpu_1_r0c2[0], _qcomm_qpu_0_r0c2[0]  entanglement_gen _qcomm_qpu_1_r0c2[0], _qcomm_qpu_0_r0c2[0]  
+186   if_gate _qcomm_qpu_0_r0c3[0]                                 measure _qcomm_qpu_1_r0c3[0]                                 
+187   gate _qcomp_qpu_0_r1c2[0]                                    gate _qcomm_qpu_1_r0c3[0]                                    
+188   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c2[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+189   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+190   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+191   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+192   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+193   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+194   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+195   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+196   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c2[0]                                                                           
+197   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+198   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]                                                                           
+199   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+200   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+201   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+202   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+203   gate _qcomm_qpu_0_r0c3[0], _qcomp_qpu_0_r1c0[0]                                                                           
+204   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+205   gate _qcomm_qpu_0_r0c3[0]                                                                                                 
+206   measure _qcomm_qpu_0_r0c3[0]                                                                                              
+207   gate _qcomm_qpu_0_r0c3[0]                                                                                                 
+208   entanglement_gen _qcomm_qpu_1_r0c3[0], _qcomm_qpu_0_r0c3[0]  entanglement_gen _qcomm_qpu_1_r0c3[0], _qcomm_qpu_0_r0c3[0]  
+209   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]                                                                           
+210   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+211   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+212   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+213   gate _qcomm_qpu_0_r0c4[0]                                                                                                 
+214   entanglement_gen _qcomm_qpu_1_r0c4[0], _qcomm_qpu_0_r0c4[0]  entanglement_gen _qcomm_qpu_1_r0c4[0], _qcomm_qpu_0_r0c4[0]  
+215   if_gate _qcomm_qpu_0_r0c4[0]                                 gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c4[0]              
+216   gate _qcomm_qpu_0_r0c4[0], _qcomp_qpu_0_r1c0[0]              measure _qcomm_qpu_1_r0c4[0]                                 
+217   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              gate _qcomm_qpu_1_r0c4[0]                                    
+218   gate _qcomp_qpu_0_r1c1[0]                                    if_gate _qcomm_qpu_1_r0c0[0]                                 
+219   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+220   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c0[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+221   measure _qcomm_qpu_0_r0c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+222   gate _qcomm_qpu_0_r0c0[0]                                    gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+223   gate _qcomm_qpu_0_r0c4[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+224   measure _qcomm_qpu_0_r0c4[0]                                 gate _qcomm_qpu_1_r0c0[0], _qcomp_qpu_1_r1c3[0]              
+225   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+226   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c1[0]              gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+227                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+228                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+229                                                                gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+230                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+231                                                                gate _qcomp_qpu_1_r1c3[0]                                    
+232                                                                gate _qcomm_qpu_1_r0c0[0]                                    
+233                                                                measure _qcomm_qpu_1_r0c0[0]                                 
+234                                                                gate _qcomm_qpu_1_r0c0[0]                                    
+235   entanglement_gen _qcomm_qpu_0_r0c0[0], _qcomm_qpu_1_r0c0[0]  entanglement_gen _qcomm_qpu_0_r0c0[0], _qcomm_qpu_1_r0c0[0]  
+236   measure _qcomm_qpu_0_r0c1[0]                                 if_gate _qcomm_qpu_1_r0c1[0]                                 
+237   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomm_qpu_1_r0c1[0], _qcomp_qpu_1_r1c3[0]              
+238   gate _qcomm_qpu_0_r0c1[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+239                                                                gate _qcomp_qpu_1_r1c3[0], _qcomp_qpu_1_r1c2[0]              
+240                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+241                                                                gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+242                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+243                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+244                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+245                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+246                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+247                                                                gate _qcomp_qpu_1_r1c3[0], _qcomp_qpu_1_r1c2[0]              
+248                                                                gate _qcomp_qpu_1_r1c2[0]                                    
+249                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+250                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+251                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+252                                                                gate _qcomp_qpu_1_r1c0[0]                                    
+253                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+254                                                                gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c1[0]              
+255                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+256                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+257                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+258                                                                gate _qcomp_qpu_1_r1c1[0]                                    
+259                                                                gate _qcomp_qpu_1_r1c0[0], _qcomp_qpu_1_r1c1[0]              
+260                                                                measure_final _qcomp_qpu_1_r1c0[0]                           
+261                                                                gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c2[0]              
+262                                                                gate _qcomm_qpu_1_r0c1[0]                                    
+263                                                                measure _qcomm_qpu_1_r0c1[0]                                 
+264                                                                gate _qcomm_qpu_1_r0c1[0]                                    
+265   entanglement_gen _qcomm_qpu_1_r0c1[0], _qcomm_qpu_0_r0c1[0]  entanglement_gen _qcomm_qpu_1_r0c1[0], _qcomm_qpu_0_r0c1[0]  
+266   if_gate _qcomm_qpu_0_r0c2[0]                                 measure _qcomm_qpu_1_r0c2[0]                                 
+267   gate _qcomm_qpu_0_r0c4[0]                                    gate _qcomm_qpu_1_r0c2[0]                                    
+268   entanglement_gen _qcomm_qpu_0_r0c4[0], _qcomm_qpu_1_r0c4[0]  entanglement_gen _qcomm_qpu_0_r0c4[0], _qcomm_qpu_1_r0c4[0]  
+269   gate _qcomp_qpu_0_r1c4[0]                                    if_gate _qcomp_qpu_1_r1c3[0]                                 
+270   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]              gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c3[0]              
+271   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+272   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+273   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+274   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+275   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+276   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]                                                                           
+277   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+278   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+279   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+280   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+281   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+282   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+283   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+284   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+285   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+286   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+287   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+288   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]                                                                           
+289   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+290   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+291   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+292   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+293   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+294   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]                                                                           
+295   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+296   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+297   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+298   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+299   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+300   gate _qcomm_qpu_0_r0c2[0], _qcomp_qpu_0_r1c0[0]                                                                           
+301   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+302   gate _qcomm_qpu_0_r0c2[0]                                                                                                 
+303   measure _qcomm_qpu_0_r0c2[0]                                                                                              
+304   gate _qcomm_qpu_0_r0c2[0]                                                                                                 
+305   entanglement_gen _qcomm_qpu_1_r0c2[0], _qcomm_qpu_0_r0c2[0]  entanglement_gen _qcomm_qpu_1_r0c2[0], _qcomm_qpu_0_r0c2[0]  
+306   if_gate _qcomm_qpu_0_r0c3[0]                                 measure _qcomm_qpu_1_r0c3[0]                                 
+307   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]              gate _qcomm_qpu_1_r0c3[0]                                    
+308   gate _qcomp_qpu_0_r1c1[0]                                    if_gate _qcomp_qpu_1_r1c3[0]                                 
+309   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c0[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+310   gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+311   gate _qcomm_qpu_0_r0c3[0], _qcomp_qpu_0_r1c0[0]              gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+312   gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+313   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c0[0]              if_gate _qcomm_qpu_1_r0c4[0]                                 
+314   gate _qcomp_qpu_0_r1c0[0]                                    gate _qcomm_qpu_1_r0c4[0], _qcomp_qpu_1_r1c3[0]              
+315   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c4[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+316   gate _qcomm_qpu_0_r0c3[0]                                    gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+317   measure _qcomm_qpu_0_r0c3[0]                                 gate _qcomp_qpu_1_r1c2[0]                                    
+318   gate _qcomm_qpu_0_r0c3[0]                                    gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+319   measure _qcomm_qpu_0_r0c4[0]                                 gate _qcomp_qpu_1_r1c2[0]                                    
+320   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomp_qpu_1_r1c1[0], _qcomp_qpu_1_r1c2[0]              
+321   gate _qcomp_qpu_0_r1c0[0], _qcomm_qpu_0_r0c0[0]              measure_final _qcomp_qpu_1_r1c1[0]                           
+322   measure _qcomm_qpu_0_r0c0[0]                                 gate _qcomp_qpu_1_r1c3[0]                                    
+323   if_gate _qcomp_qpu_0_r1c0[0]                                 gate _qcomm_qpu_1_r0c4[0]                                    
+324   gate _qcomm_qpu_0_r0c0[0]                                    measure _qcomm_qpu_1_r0c4[0]                                 
+325   if_gate _qcomm_qpu_0_r0c1[0]                                 if_gate _qcomm_qpu_1_r0c0[0]                                 
+326   gate _qcomm_qpu_0_r0c4[0]                                    gate _qcomm_qpu_1_r0c0[0], _qcomp_qpu_1_r1c3[0]              
+327   gate _qcomp_qpu_0_r1c4[0]                                    gate _qcomp_qpu_1_r1c3[0]                                    
+328   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+329   gate _qcomp_qpu_0_r1c4[0]                                    gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+330   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]              gate _qcomp_qpu_1_r1c3[0]                                    
+331   gate _qcomp_qpu_0_r1c3[0]                                    gate _qcomp_qpu_1_r1c2[0], _qcomp_qpu_1_r1c3[0]              
+332   gate _qcomp_qpu_0_r1c3[0]                                    measure_final _qcomp_qpu_1_r1c2[0]                           
+333   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]              gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c1[0]              
+334   gate _qcomp_qpu_0_r1c3[0]                                    gate _qcomm_qpu_1_r0c0[0]                                    
+335   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]              measure _qcomm_qpu_1_r0c0[0]                                 
+336   gate _qcomp_qpu_0_r1c3[0]                                    gate _qcomm_qpu_1_r0c0[0]                                    
+337   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]              measure _qcomm_qpu_1_r0c1[0]                                 
+338   gate _qcomp_qpu_0_r1c2[0]                                    gate _qcomm_qpu_1_r0c1[0]                                    
+339   gate _qcomp_qpu_0_r1c2[0]                                    gate _qcomm_qpu_1_r0c4[0]                                    
+340   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+341   gate _qcomp_qpu_0_r1c2[0]                                    gate _qcomp_qpu_1_r1c3[0], _qcomm_qpu_1_r0c2[0]              
+342   gate _qcomp_qpu_0_r1c3[0]                                    measure _qcomm_qpu_1_r0c2[0]                                 
+343   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]              if_gate _qcomp_qpu_1_r1c3[0]                                 
+344   gate _qcomp_qpu_0_r1c3[0]                                    measure_final _qcomp_qpu_1_r1c3[0]                           
+345   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c2[0]              gate _qcomm_qpu_1_r0c2[0]                                    
+346   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+347   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+348   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+349   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+350   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+351   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+352   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+353   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c2[0]                                                                           
+354   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+355   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]                                                                           
+356   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+357   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+358   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+359   gate _qcomm_qpu_0_r0c1[0], _qcomp_qpu_0_r1c0[0]                                                                           
+360   gate _qcomp_qpu_0_r1c0[0]                                                                                                 
+361   gate _qcomm_qpu_0_r0c1[0]                                                                                                 
+362   measure _qcomm_qpu_0_r0c1[0]                                                                                              
+363   gate _qcomm_qpu_0_r0c1[0]                                                                                                 
+364   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+365   if_gate _qcomm_qpu_0_r0c2[0]                                                                                              
+366   gate _qcomm_qpu_0_r0c2[0], _qcomp_qpu_0_r1c0[0]                                                                           
+367   gate _qcomm_qpu_0_r0c2[0]                                                                                                 
+368   measure _qcomm_qpu_0_r0c2[0]                                                                                              
+369   gate _qcomm_qpu_0_r0c2[0]                                                                                                 
+370   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c1[0]                                                                           
+371   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+372   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+373   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+374   gate _qcomp_qpu_0_r1c1[0]                                                                                                 
+375   gate _qcomp_qpu_0_r1c0[0], _qcomp_qpu_0_r1c1[0]                                                                           
+376   measure_final _qcomp_qpu_0_r1c0[0]                                                                                        
+377   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+378   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+379   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+380   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+381   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+382   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+383   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+384   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+385   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+386   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+387   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]                                                                           
+388   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+389   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+390   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+391   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+392   gate _qcomp_qpu_0_r1c2[0]                                                                                                 
+393   gate _qcomp_qpu_0_r1c1[0], _qcomp_qpu_0_r1c2[0]                                                                           
+394   measure_final _qcomp_qpu_0_r1c1[0]                                                                                        
+395   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+396   gate _qcomp_qpu_0_r1c4[0], _qcomp_qpu_0_r1c3[0]                                                                           
+397   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+398   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+399   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+400   gate _qcomp_qpu_0_r1c3[0]                                                                                                 
+401   gate _qcomp_qpu_0_r1c2[0], _qcomp_qpu_0_r1c3[0]                                                                           
+402   measure_final _qcomp_qpu_0_r1c2[0]                                                                                        
+403   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+404   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+405   gate _qcomp_qpu_0_r1c4[0]                                                                                                 
+406   gate _qcomp_qpu_0_r1c3[0], _qcomp_qpu_0_r1c4[0]                                                                           
+407   measure_final _qcomp_qpu_0_r1c3[0]                                                                                        
+408   measure_final _qcomp_qpu_0_r1c4[0]                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------
+Total timeslots: 409
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+<frozen runpy>:128: RuntimeWarning: 'qnpack.dqc.sim' found in sys.modules after import of package 'qnpack.dqc', but prior to execution of 'qnpack.dqc.sim'; this may result in unpredictable behaviour
+11:33:26 qnpack.dqc.simulation INFO === Config: two_q_depolar_prob=0 | one_q_depolar_prob=0 | emission_fidelity=1 | collection_efficiency=1 | T1=1000000000000000.0 | T2=1000000000000000.0 | one_q_gate_duration=5000 | two_q_gate_duration=10700 | photon_loss=0 | init_photon_loss=0 | fiber_depolar_rate=0 ===

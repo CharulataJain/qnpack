@@ -18,7 +18,7 @@ dist/
 *.swp
 
 # DQC simulation outputs
-qnpack/dqc/results/
+# qnpack/dqc/results/
 qnpack/dqc/qpu_partitioned_commands.json
 qnpack/dqc/qnpack.code-workspace
 qnpack.egg-info/

@@ -1,0 +1,4 @@
+algorithm,circuit_mode,entanglement_method,formalism,qpu_count,qasm_file,sweep_index,fiber_depolar_rate,target_bitstring,target_count,num_runs,target_state_probability,raw_csv
+grover4,cisco,bsm,KET,1,qasm/grover4_1qpu.qasm,1,0,1011,482,500,0.964,grover4_cisco_bsm_ket_all_runs.csv (merged from 5 batches of 100)
+grover4,cisco,bsm,KET,2,qasm/grover4_2qpu.qasm,1,0,1011,479,500,0.958,grover4_cisco_bsm_ket_all_runs.csv (merged from 5 batches of 100)
+grover4,cisco,bsm,KET,3,qasm/grover4_3qpu.qasm,1,0,1011,480,500,0.96,grover4_cisco_bsm_ket_all_runs.csv (merged from 5 batches of 100)

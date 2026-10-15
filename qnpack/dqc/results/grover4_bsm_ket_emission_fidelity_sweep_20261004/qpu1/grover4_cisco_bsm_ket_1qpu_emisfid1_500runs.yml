@@ -1,0 +1,70 @@
+bsm:
+  coupling_efficiency: 1
+  detection_window: 4320000
+  detector_dead_time: 0
+  detector_wait_factor: 1.05
+  deterministic_bsm: false
+  error_on_fail: false
+  max_emission_retries: 90
+  retry_duration: 0
+  system_delay: 0
+channel:
+  c_lightspeed: 200000
+  fiber_depolar_rate: 0
+  init_photon_loss: 0
+  missing_length_km: 1
+  photon_loss: 0
+  q_lightspeed: 200000
+  quantum_noise_model: DepolarNoiseModel
+  simulated_length_km: 0.01
+  time_independent: true
+circuit:
+  dist_commands_file: commands/grover_4_3qpu.txt
+  measure_qubits: '{1: [21, 20], 2: [20], 3: [20]}'
+  mode: cisco
+  pre_schedule_entanglement: false
+  qasm_file: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/qasm/grover4_1qpu.qasm
+clock:
+  HZ: 1000000
+  max_ticks: -1
+entanglement:
+  magic_state_delay_ns: 0
+  method: bsm
+epr_factory:
+  check_interval_ns: 1000000
+  comm_qubits_reserved: 16
+  drain_timeout_ns: 5000000
+  enabled: false
+  max_maintain_rounds: 100000
+  min_fidelity: 0.9
+  pool_only: true
+  pool_size_per_pair: 8
+gate_durations:
+  one_q_gate_duration: 5000
+  two_q_gate_duration: 10700
+memory:
+  T1: 1000000000000000.0
+  T2: 1000000000000000.0
+  noise_model: T1T2NoiseModel
+qpu:
+  collection_efficiency: 1
+  emission_duration: 0
+  emission_fidelity: 1
+  num_qpu_nodes: 3
+  one_q_depolar_prob: 1.0e-07
+  qubits: 22
+  two_q_depolar_prob: 1.0e-06
+results:
+  plot_filename: dqc_measurements.png
+  top_n_bitstrings: 5
+sim:
+  debug: false
+  formalism: KET
+  iterations: 500
+  max_workers: 12
+switch:
+  internal_length_km: 0.01
+  mems_latency_ns: 0
+  port_insertion_loss: 0
+topology:
+  file: topology/topology_v2.json

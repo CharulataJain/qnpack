@@ -1,0 +1,22 @@
+{
+  "algorithm": "grover4",
+  "qpu_count": 3,
+  "qasm_file": "/Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/qasm/grover4_3qpu.qasm",
+  "qasm_sha256": "c2a55e051e22873f08bba9553184a06bdfa2d10ea7d21b055b56739aa1c573c5",
+  "parameters_sha256": "ef03cff003fe5f8fefe5762cd63cd68214e683858d1984ef3a0892bd47cff0b7",
+  "target_bitstring": "1011",
+  "circuit_mode": "cisco",
+  "entanglement_method": "bsm",
+  "formalism": "KET",
+  "num_runs": 500,
+  "max_workers": 12,
+  "numerical_threads_per_worker": 1,
+  "swept_parameter": "qpu.emission_fidelity",
+  "fiber_depolar_rate": 0,
+  "two_q_depolar_prob": 1e-06,
+  "one_q_depolar_prob": 1e-07,
+  "emission_fidelity": 0.999,
+  "collection_efficiency": 1,
+  "T1": 1000000000000000.0,
+  "T2": 1000000000000000.0
+}

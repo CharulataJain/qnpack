@@ -1,0 +1,10 @@
+algorithm,circuit_mode,entanglement_method,formalism,qpu_count,qasm_file,sweep_index,fiber_depolar_rate,target_bitstring,target_count,num_runs,target_state_probability,raw_csv
+grover4,cisco,bsm,KET,1,qasm/grover4_1qpu.qasm,1,0,1011,473,500,0.946,grover4_cisco_bsm_ket_1qpu_fiber0_500runs.csv
+grover4,cisco,bsm,KET,1,qasm/grover4_1qpu.qasm,2,0.1,1011,481,500,0.962,grover4_cisco_bsm_ket_1qpu_fiber0p1_500runs.csv
+grover4,cisco,bsm,KET,1,qasm/grover4_1qpu.qasm,3,0.2,1011,477,500,0.954,grover4_cisco_bsm_ket_1qpu_fiber0p2_500runs.csv
+grover4,cisco,bsm,KET,2,qasm/grover4_2qpu.qasm,1,0,1011,488,500,0.976,grover4_cisco_bsm_ket_2qpu_fiber0_500runs.csv
+grover4,cisco,bsm,KET,2,qasm/grover4_2qpu.qasm,2,0.1,1011,26,500,0.052,grover4_cisco_bsm_ket_2qpu_fiber0p1_500runs.csv
+grover4,cisco,bsm,KET,2,qasm/grover4_2qpu.qasm,3,0.2,1011,36,500,0.072,grover4_cisco_bsm_ket_2qpu_fiber0p2_500runs.csv
+grover4,cisco,bsm,KET,3,qasm/grover4_3qpu.qasm,1,0,1011,485,500,0.97,grover4_cisco_bsm_ket_3qpu_fiber0_500runs.csv
+grover4,cisco,bsm,KET,3,qasm/grover4_3qpu.qasm,2,0.1,1011,31,500,0.062,grover4_cisco_bsm_ket_3qpu_fiber0p1_500runs.csv
+grover4,cisco,bsm,KET,3,qasm/grover4_3qpu.qasm,3,0.2,1011,29,500,0.058,grover4_cisco_bsm_ket_3qpu_fiber0p2_500runs.csv
