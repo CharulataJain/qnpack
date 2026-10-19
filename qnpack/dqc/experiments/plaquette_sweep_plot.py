@@ -74,43 +74,35 @@ def _load_series(subdir, prefix, extra_subdirs=(), exclude=()):
     return ns, ys, errs
 
 
-# (subdir, prefix, nqpu, lattice, noise, extra_dirs)
-SERIES = [
-    ("1qpu_1d_magic_ideal", "1qpu_1d_magic_ideal", 1, "1d", "noiseless",
-     [("1qpu_1d_ideal", "1qpu_1d_ideal")]),
-    ("1qpu_1d_magic_noisy", "1qpu_1d_magic_noisy", 1, "1d", "noisy",
-     [("1qpu_1d_noisy", "1qpu_1d_noisy")]),
-    ("2qpu_1d_magic_ideal", "2qpu_1d_magic_ideal", 2, "1d", "noiseless", []),
-    ("2qpu_1d_magic_noisy", "2qpu_1d_magic_noisy", 2, "1d", "noisy", []),
-    ("1qpu_2d_magic_ideal", "1qpu_2d_magic_ideal", 1, "2d", "noiseless", []),
-    ("1qpu_2d_magic_noisy", "1qpu_2d_magic_noisy", 1, "2d", "noisy", []),
-    ("2qpu_2d_magic_ideal", "2qpu_2d_magic_ideal", 2, "2d", "noiseless", []),
-    ("2qpu_2d_magic_noisy", "2qpu_2d_magic_noisy", 2, "2d", "noisy", []),
-]
+def _series_def(lattice):
+    """Return the ordered list of series to plot for a given lattice.
 
-LS = {"noiseless": "-", "noisy": "-."}  # solid=noiseless, dash-dot=noisy
-
-# One distinct color per (nqpu, lattice) config
-CONFIGS = [
-    (1, "1d", "#3498db", "o", "1 QPU · 1D chain"),
-    (1, "2d", "#2ecc71", "s", "1 QPU · 2D grid"),
-    (2, "1d", "#e74c3c", "D", "2 QPU · 1D chain"),
-    (2, "2d", "#9b59b6", "^", "2 QPU · 2D grid"),
-]
-
-
-EXTRA_MAP = {
-    (1, "1d", "noiseless"): [("1qpu_1d_ideal", "1qpu_1d_ideal")],
-    (1, "1d", "noisy"): [("1qpu_1d_noisy", "1qpu_1d_noisy")],
-}
-
-# Override subdir for specific (nqpu, lattice, noise) combos
-SUBDIR_OVERRIDE = {
-    (2, "1d", "noisy"): "2qpu_1d_bsm_noisy_emf096",
-    (2, "2d", "noisy"): "2qpu_2d_bsm_noisy_emf096",
-}
-
-COLOR_QPU = {1: "#3498db", 2: "#e74c3c"}
+    Each entry: (label, subdir, prefix, extra_dirs, exclude,
+                 color, linestyle, marker, lw, elinewidth, capsize, capthick,
+                 alpha, zorder)
+    """
+    excl = (5,) if lattice == "1d" else ()
+    L = lattice
+    extra_ideal = [("1qpu_1d_ideal", "1qpu_1d_ideal")] if L == "1d" else []
+    extra_noisy = [("1qpu_1d_noisy", "1qpu_1d_noisy")] if L == "1d" else []
+    return [
+        # label                             subdir / prefix
+        ("1 QPU noiseless",
+         f"1qpu_{L}_magic_ideal",  f"1qpu_{L}_magic_ideal",  extra_ideal, excl,
+         "#3498db", "-",  "o",    2.4, 1.8, 5, 1.8, 0.95, 5),
+        ("1 QPU noisy",
+         f"1qpu_{L}_magic_noisy",  f"1qpu_{L}_magic_noisy",  extra_noisy, excl,
+         "#3498db", "-.", "none", 1.6, 1.1, 4, 1.1, 0.70, 3),
+        ("2 QPU noiseless",
+         f"2qpu_{L}_magic_ideal",  f"2qpu_{L}_magic_ideal",  [],          excl,
+         "#e74c3c", "-",  "o",    2.4, 1.8, 5, 1.8, 0.95, 5),
+        (r"2 QPU noisy, $\eta=1.0$",
+         f"2qpu_{L}_magic_noisy",  f"2qpu_{L}_magic_noisy",  [],          excl,
+         "#e74c3c", "-.", "none", 1.6, 1.1, 4, 1.1, 0.70, 3),
+        (r"2 QPU noisy, $\eta=0.96$",
+         f"2qpu_{L}_bsm_noisy_emf096", f"2qpu_{L}_bsm_noisy_emf096", [], excl,
+         "#e67e22", "--", "none", 1.6, 1.1, 4, 1.1, 0.70, 3),
+    ]
 
 
 def main():
@@ -118,35 +110,27 @@ def main():
     titles = {"1d": "1D chain", "2d": "2D grid"}
 
     for ax, lattice in zip(axes, ("1d", "2d")):
-        exclude = (5,) if lattice == "1d" else ()
-        for nqpu in (1, 2):
-            color = COLOR_QPU[nqpu]
-            for noise in ("noiseless", "noisy"):
-                extra = EXTRA_MAP.get((nqpu, lattice, noise), [])
-                dir_noise = "ideal" if noise == "noiseless" else noise
-                subdir = SUBDIR_OVERRIDE.get(
-                    (nqpu, lattice, noise),
-                    f"{nqpu}qpu_{lattice}_magic_{dir_noise}"
-                )
-                xs, ys, errs = _load_series(subdir, subdir, extra, exclude)
-                if not xs:
-                    continue
-                label = f"{nqpu} QPU {noise}"
-                is_noiseless = noise == "noiseless"
-                ax.errorbar(
-                    xs, ys, yerr=errs,
-                    fmt=LS[noise],
-                    color=color,
-                    marker="o" if is_noiseless else "none",
-                    markersize=5,
-                    lw=2.4 if is_noiseless else 1.4,
-                    elinewidth=1.6 if is_noiseless else 1.0,
-                    capsize=4,
-                    capthick=1.6 if is_noiseless else 1.0,
-                    alpha=0.95 if is_noiseless else 0.6,
-                    zorder=4 if is_noiseless else 3,
-                    label=label,
-                )
+        for (label, subdir, prefix, extra, excl,
+             color, ls, marker, lw, elw, capsize, capthick,
+             alpha, zorder) in _series_def(lattice):
+
+            xs, ys, errs = _load_series(subdir, prefix, extra, excl)
+            if not xs:
+                continue
+            ax.errorbar(
+                xs, ys, yerr=errs,
+                fmt=ls,
+                color=color,
+                marker=marker,
+                markersize=5,
+                lw=lw,
+                elinewidth=elw,
+                capsize=capsize,
+                capthick=capthick,
+                alpha=alpha,
+                zorder=zorder,
+                label=label,
+            )
 
         ax.set_xlabel("Trotter steps (n)", fontsize=13, fontweight="bold")
         if ax is axes[0]:
