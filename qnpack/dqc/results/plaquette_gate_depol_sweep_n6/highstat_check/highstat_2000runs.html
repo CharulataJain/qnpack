@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Highstat check — 2000 runs, 1D 1QPU, plaquette n=6</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:     #fcfcfb;
+    --page:          #f9f9f7;
+    --text-primary:  #0b0b0b;
+    --text-secondary:#52514e;
+    --text-muted:    #898781;
+    --grid:          #e1e0d9;
+    --axis:          #c3c2b7;
+    --s1: #2a78d6;   /* 2000-run / depol=0     */
+    --s2: #eb6834;   /* 2000-run / depol=1e-4  */
+    --s3: #1baf7a;   /* 2000-run / depol=1e-3  */
+    --ref:#898781;   /* 500-run reference dots  */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:     #1a1a19;
+      --page:          #0d0d0d;
+      --text-primary:  #f0efec;
+      --text-secondary:#c3c2b7;
+      --text-muted:    #898781;
+      --grid:          #2c2c2a;
+      --axis:          #383835;
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --ref:#6b6a66;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:     #1a1a19;
+    --page:          #0d0d0d;
+    --text-primary:  #f0efec;
+    --text-secondary:#c3c2b7;
+    --text-muted:    #898781;
+    --grid:          #2c2c2a;
+    --axis:          #383835;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --ref:#6b6a66;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+  }
+  .viz-root {
+    background: var(--surface-1);
+    max-width: 860px;
+    margin: 32px auto;
+    border-radius: 8px;
+    padding: 28px 32px 24px;
+  }
+  .chart-title {
+    font-size: 15px; font-weight: 600;
+    color: var(--text-primary); margin-bottom: 2px;
+  }
+  .chart-subtitle {
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;
+  }
+  .charts-row { display: flex; gap: 32px; align-items: flex-start; }
+  .panel { flex: 1 1 0; }
+  .panel-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 8px;
+  }
+  svg { display: block; overflow: visible; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 16px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    outline: 2px solid var(--surface-1);
+  }
+  .legend-dash {
+    width: 18px; height: 2px; border-radius: 1px; flex-shrink: 0;
+    opacity: 0.45;
+  }
+
+  #tooltip {
+    position: fixed; pointer-events: none;
+    background: var(--surface-1); border: 1px solid var(--axis);
+    border-radius: 6px; padding: 8px 12px;
+    font-size: 12px; color: var(--text-primary); line-height: 1.6;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    opacity: 0; transition: opacity .1s; z-index: 100; white-space: nowrap;
+  }
+  #tooltip .tt-label { font-weight: 600; margin-bottom: 2px; }
+  #tooltip .tt-row   { color: var(--text-secondary); }
+
+  .toggle-wrap { text-align: right; margin-bottom: 12px; }
+  .toggle-wrap button {
+    font: inherit; font-size: 12px; background: none;
+    border: 1px solid var(--axis); border-radius: 4px;
+    padding: 3px 10px; cursor: pointer; color: var(--text-secondary);
+  }
+
+  details { margin-top: 20px; }
+  summary { font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+  table { margin-top: 10px; width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text-secondary); }
+  th { text-align: left; border-bottom: 1px solid var(--grid); padding: 4px 8px; color: var(--text-muted); font-weight: 500; }
+  td { padding: 4px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="toggle-wrap"><button onclick="toggleTheme()">Toggle dark mode</button></div>
+  <div class="chart-title">Highstat check — 2000 runs, 1D 1QPU, plaquette TFIM n=6</div>
+  <div class="chart-subtitle">Left: P(center=1) vs gate depol — 2000-run vs 500-run baseline · Right: P(meas_i=1) across all 9 qubits for each depol level</div>
+
+  <div class="charts-row">
+    <div class="panel" style="max-width:340px">
+      <div class="panel-label">P(center=1) vs depolarization</div>
+      <svg id="svg-left" viewBox="0 0 340 280" aria-label="P center vs depol"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Per-qubit P(meas=1) — all 9 qubits</div>
+      <svg id="svg-right" viewBox="0 0 440 280" aria-label="Per-qubit probabilities"></svg>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <details>
+    <summary>Table view</summary>
+    <table>
+      <thead><tr><th>Source</th><th>depol</th><th>Qubit</th><th>P(meas=1)</th><th>95% CI ±</th></tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </details>
+</div>
+<div id="tooltip"></div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function css(v) {
+  return getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(v).trim();
+}
+
+// ── data ─────────────────────────────────────────────────────────────
+const N2 = 2000, N5 = 500;
+const DEPOLS = [0, 1e-4, 1e-3];
+const DEPOL_LABELS = ["0", "10⁻⁴", "10⁻³"];
+
+// 2000-run per-qubit data
+const DATA_2K = [
+  { depol: 0,    n: N2, perQubit: [0.129,0.134,0.130,0.132,0.120,0.116,0.124,0.123,0.129] },
+  { depol: 1e-4, n: N2, perQubit: [0.131,0.130,0.137,0.123,0.120,0.126,0.131,0.124,0.140] },
+  { depol: 1e-3, n: N2, perQubit: [0.135,0.163,0.148,0.161,0.172,0.161,0.161,0.166,0.141] },
+];
+DATA_2K.forEach(d => {
+  const p = d.perQubit[4];
+  d.pCenter = p;
+  d.ci95 = 1.96 * Math.sqrt(p*(1-p)/d.n);
+});
+
+// 500-run reference (1d_1qpu, matched depol levels)
+const REF_500 = [
+  { depol: 0,    p: 0.126, n: N5 },
+  { depol: 1e-4, p: 0.138, n: N5 },
+  { depol: 1e-3, p: 0.164, n: N5 },
+];
+REF_500.forEach(d => { d.ci95 = 1.96 * Math.sqrt(d.p*(1-d.p)/d.n); });
+
+const SERIES_COLORS = ["--s1","--s2","--s3"];
+
+// ── LEFT PANEL: P(center=1) vs depol ────────────────────────────────
+function renderLeft() {
+  const svg = document.getElementById("svg-left");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const ML=52, MR=16, MT=16, MB=56, W=340, H=280;
+  const CW=W-ML-MR, CH=H-MT-MB;
+  const Y_MIN=0.08, Y_MAX=0.22;
+
+  const xPx = i => ML + (i/(DEPOLS.length-1))*CW;
+  const yPx = p => MT + CH - ((p-Y_MIN)/(Y_MAX-Y_MIN))*CH;
+
+  // grid
+  [0.09,0.10,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.20,0.21].forEach(p => {
+    if (p<Y_MIN||p>Y_MAX) return;
+    svg.appendChild(el("line",{ x1:ML,x2:ML+CW,y1:yPx(p),y2:yPx(p), stroke:css("--grid"),"stroke-width":1 }));
+    if ([0.10,0.12,0.14,0.16,0.18,0.20].includes(p)) {
+      svg.appendChild(el("text",{ x:ML-6,y:yPx(p)+4,"text-anchor":"end","font-size":10,fill:css("--text-muted"),
+        "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif","font-variant-numeric":"tabular-nums"
+      }, p.toFixed(2)));
+    }
+  });
+  svg.appendChild(el("line",{ x1:ML,x2:ML+CW,y1:MT+CH,y2:MT+CH,stroke:css("--axis"),"stroke-width":1 }));
+
+  // x ticks
+  DEPOLS.forEach((d,i) => {
+    const x = xPx(i);
+    svg.appendChild(el("line",{x1:x,x2:x,y1:MT+CH,y2:MT+CH+5,stroke:css("--axis"),"stroke-width":1}));
+    svg.appendChild(el("text",{x,y:MT+CH+16,"text-anchor":"middle","font-size":10,fill:css("--text-muted"),
+      "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif"}, DEPOL_LABELS[i]));
+  });
+  svg.appendChild(el("text",{x:ML+CW/2,y:H-4,"text-anchor":"middle","font-size":11,fill:css("--text-secondary"),
+    "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif"}, "p₂Q"));
+  svg.appendChild(el("text",{transform:`rotate(-90) translate(${-(MT+CH/2)},14)`,"text-anchor":"middle","font-size":11,
+    fill:css("--text-secondary"),"font-family":"system-ui,-apple-system,'Segoe UI',sans-serif"}, "P(center=1)"));
+
+  // 500-run reference (grey, behind)
+  const refPath = REF_500.map((d,i)=>`${i===0?"M":"L"}${xPx(i).toFixed(1)},${yPx(d.p).toFixed(1)}`).join(" ");
+  svg.appendChild(el("path",{d:refPath,fill:"none",stroke:css("--ref"),"stroke-width":1.5,
+    "stroke-dasharray":"4 3","stroke-linecap":"round"}));
+  REF_500.forEach((d,i) => {
+    const x=xPx(i), y=yPx(d.p);
+    const yHi=yPx(d.p+d.ci95), yLo=yPx(d.p-d.ci95);
+    svg.appendChild(el("line",{x1:x,x2:x,y1:yHi,y2:yLo,stroke:css("--ref"),"stroke-width":1,opacity:0.5}));
+    [-1,1].forEach(dir=>svg.appendChild(el("line",{x1:x-3,x2:x+3,y1:dir===-1?yHi:yLo,y2:dir===-1?yHi:yLo,
+      stroke:css("--ref"),"stroke-width":1,opacity:0.5})));
+    svg.appendChild(el("circle",{cx:x,cy:y,r:5,fill:css("--surface-1")}));
+    svg.appendChild(el("circle",{cx:x,cy:y,r:3.5,fill:css("--ref")}));
+  });
+
+  // 2000-run colored dots + CI
+  DATA_2K.forEach((d,i) => {
+    const color = css(SERIES_COLORS[i]);
+    const x=xPx(i), y=yPx(d.pCenter);
+    const yHi=yPx(d.pCenter+d.ci95), yLo=yPx(d.pCenter-d.ci95);
+    svg.appendChild(el("line",{x1:x,x2:x,y1:yHi,y2:yLo,stroke:color,"stroke-width":1.5,opacity:0.5}));
+    [-1,1].forEach(dir=>svg.appendChild(el("line",{x1:x-4,x2:x+4,y1:dir===-1?yHi:yLo,y2:dir===-1?yHi:yLo,
+      stroke:color,"stroke-width":1.5,opacity:0.5})));
+    // ring
+    const ring = el("circle",{cx:x,cy:y,r:7,fill:css("--surface-1"),style:"cursor:crosshair"});
+    const dot  = el("circle",{cx:x,cy:y,r:5,fill:color,style:"cursor:crosshair"});
+    [ring,dot].forEach(n=>{
+      n.addEventListener("mouseenter", e => showTip(e, `p₂Q = ${DEPOL_LABELS[i]}`,
+        [`P(center=1) = ${d.pCenter.toFixed(4)}`,`95% CI ± ${d.ci95.toFixed(4)}`,`n = ${N2} runs`], color));
+      n.addEventListener("mouseleave", hideTip);
+    });
+    svg.appendChild(ring); svg.appendChild(dot);
+  });
+}
+
+// ── RIGHT PANEL: per-qubit grouped bars ─────────────────────────────
+function renderRight() {
+  const svg = document.getElementById("svg-right");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const ML=16, MR=8, MT=16, MB=56, W=440, H=280;
+  const CW=W-ML-MR, CH=H-MT-MB;
+  const Y_MIN=0.08, Y_MAX=0.22;
+  const yPx = p => MT + CH - ((p-Y_MIN)/(Y_MAX-Y_MIN))*CH;
+
+  const nQ=9, nSeries=3;
+  const groupW = CW/nQ;
+  const barW = Math.min(14, (groupW - 6) / nSeries);
+  const groupGap = (groupW - barW*nSeries)/2;
+
+  const xBar = (qi, si) => ML + qi*groupW + groupGap + si*barW;
+
+  // grid
+  [0.10,0.12,0.14,0.16,0.18,0.20].forEach(p => {
+    svg.appendChild(el("line",{x1:ML,x2:ML+CW,y1:yPx(p),y2:yPx(p),stroke:css("--grid"),"stroke-width":1}));
+    svg.appendChild(el("text",{x:ML-4,y:yPx(p)+4,"text-anchor":"end","font-size":10,fill:css("--text-muted"),
+      "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif","font-variant-numeric":"tabular-nums"},p.toFixed(2)));
+  });
+  svg.appendChild(el("line",{x1:ML,x2:ML+CW,y1:MT+CH,y2:MT+CH,stroke:css("--axis"),"stroke-width":1}));
+
+  // qubit labels + center marker
+  for(let qi=0;qi<nQ;qi++){
+    const cx = ML + qi*groupW + groupW/2;
+    const label = qi===4 ? "q4★" : `q${qi}`;
+    svg.appendChild(el("text",{x:cx,y:MT+CH+15,"text-anchor":"middle","font-size":qi===4?11:10,
+      "font-weight":qi===4?"600":"400",
+      fill:qi===4?css("--text-secondary"):css("--text-muted"),
+      "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif"},label));
+  }
+  svg.appendChild(el("text",{x:ML+CW/2,y:H-4,"text-anchor":"middle","font-size":11,fill:css("--text-secondary"),
+    "font-family":"system-ui,-apple-system,'Segoe UI',sans-serif"},"Qubit index (★ = center)"));
+
+  // vertical separator at center qubit
+  const cxSep = ML + 4*groupW;
+  svg.appendChild(el("line",{x1:cxSep,x2:cxSep,y1:MT,y2:MT+CH,stroke:css("--axis"),"stroke-width":1,
+    "stroke-dasharray":"3 3"}));
+
+  // bars
+  DATA_2K.forEach((d, si) => {
+    const color = css(SERIES_COLORS[si]);
+    d.perQubit.forEach((p, qi) => {
+      const x  = xBar(qi, si);
+      const yT = yPx(p);
+      const yB = yPx(Y_MIN);
+      const h  = yB - yT;
+      const ci95 = 1.96*Math.sqrt(p*(1-p)/N2);
+
+      const bar = el("rect",{
+        x, y:yT, width:barW-1, height:Math.max(h,1),
+        fill:color, rx:2, ry:2,
+        style:"cursor:crosshair"
+      });
+      bar.addEventListener("mouseenter", e => showTip(e,
+        `${DEPOL_LABELS[si]} — q${qi}`,
+        [`P(meas=1) = ${p.toFixed(4)}`,`95% CI ± ${ci95.toFixed(4)}`,`n = ${N2} runs`], color));
+      bar.addEventListener("mouseleave", hideTip);
+      svg.appendChild(bar);
+
+      // CI error bar
+      const yCi  = yPx(p+ci95);
+      const yCiL = yPx(p-ci95);
+      const cx2  = x + (barW-1)/2;
+      svg.appendChild(el("line",{x1:cx2,x2:cx2,y1:yCi,y2:Math.min(yCiL,yB),
+        stroke:color,"stroke-width":1,opacity:0.5}));
+    });
+  });
+}
+
+// ── tooltip ──────────────────────────────────────────────────────────
+const tip = document.getElementById("tooltip");
+function showTip(e, label, rows, color) {
+  tip.innerHTML = `<div class="tt-label" style="color:${color}">${label}</div>` +
+    rows.map(r=>`<div class="tt-row">${r}</div>`).join("");
+  tip.style.opacity=1;
+  moveTip(e);
+  document.addEventListener("mousemove", moveTip);
+}
+function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY-10)+"px"; }
+function hideTip(){ tip.style.opacity=0; document.removeEventListener("mousemove",moveTip); }
+
+// ── legend ───────────────────────────────────────────────────────────
+function buildLegend() {
+  const leg = document.getElementById("legend");
+  leg.innerHTML = "";
+  DEPOLS.forEach((d,i) => {
+    const color = css(SERIES_COLORS[i]);
+    const item = document.createElement("div"); item.className="legend-item";
+    const dot = document.createElement("div"); dot.className="legend-dot";
+    dot.style.background = color;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(`p₂Q = ${DEPOL_LABELS[i]} (2000 runs)`));
+    leg.appendChild(item);
+  });
+  // reference
+  const refItem = document.createElement("div"); refItem.className="legend-item";
+  const dash = document.createElement("div"); dash.className="legend-dash";
+  dash.style.background = css("--ref");
+  refItem.appendChild(dash);
+  refItem.appendChild(document.createTextNode("500-run baseline (reference)"));
+  leg.appendChild(refItem);
+}
+
+// ── table ─────────────────────────────────────────────────────────────
+function buildTable() {
+  const tbody = document.getElementById("table-body");
+  DATA_2K.forEach((d, si) => {
+    d.perQubit.forEach((p, qi) => {
+      const ci95 = 1.96*Math.sqrt(p*(1-p)/N2);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>2000-run</td><td>${DEPOL_LABELS[si]}</td><td>q${qi}${qi===4?" (center)":""}</td><td>${p.toFixed(4)}</td><td>±${ci95.toFixed(4)}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  REF_500.forEach((d, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>500-run ref</td><td>${DEPOL_LABELS[i]}</td><td>q4 (center)</td><td>${d.p.toFixed(4)}</td><td>±${d.ci95.toFixed(4)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme==="dark" ? "light" : "dark";
+  renderLeft(); renderRight(); buildLegend();
+}
+
+renderLeft(); renderRight(); buildLegend(); buildTable();
+</script>
+</body>
+</html>

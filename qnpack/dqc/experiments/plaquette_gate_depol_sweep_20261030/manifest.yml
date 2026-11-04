@@ -1,0 +1,39 @@
+# Gate depolarizing sweep for plaquette simulation — n=6 only.
+# Emission fidelity is held fixed at 1.0 (perfect).
+# All circuits use magic entanglement mode so emission noise is absent.
+# Sweep is mutually exclusive with plaquette_emf_sweep_20261030:
+#   this sweep  → vary depol, fix emission_fidelity=1.0
+#   emf sweep   → vary emission_fidelity, fix depol=0
+
+source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/parameters.yml
+base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
+output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/plaquette_gate_depol_sweep_n6
+python_executable: /opt/anaconda3/bin/python
+
+n_steps: 6
+num_runs: 500
+max_workers: 8
+center_qubit: 4          # meas_4 = center of 3x3 / L=9 chain
+circuit_mode: cisco_v2
+entanglement_method: magic   # same for all circuits; no photon emission path
+emission_fidelity: 1.0       # held fixed
+
+circuits:
+  1d_1qpu: qasm/plaquette_sweep/9qubit_1qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+  1d_2qpu: qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+  2d_1qpu: qasm/plaquette_sweep/9qubit_1qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+  2d_2qpu: qasm/plaquette_sweep/9qubit_2qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+
+# p2/p1 ratio fixed at 10:1 (matching grover4_gate_sweep_20260928 convention).
+# First pair is ideal (0, 0) as a reference baseline.
+noise_pairs:
+  - two_q_depolar_prob: 0.0
+    one_q_depolar_prob: 0.0
+  - two_q_depolar_prob: 0.000001
+    one_q_depolar_prob: 0.0000001
+  - two_q_depolar_prob: 0.00001
+    one_q_depolar_prob: 0.000001
+  - two_q_depolar_prob: 0.0001
+    one_q_depolar_prob: 0.00001
+  - two_q_depolar_prob: 0.001
+    one_q_depolar_prob: 0.0001

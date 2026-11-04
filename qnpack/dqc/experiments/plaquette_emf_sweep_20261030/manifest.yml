@@ -1,0 +1,50 @@
+# Emission fidelity sweep for plaquette simulation — n=6 only.
+# Gate depolarization is held fixed at 0 (both one_q and two_q).
+# 1QPU circuits use magic entanglement (emission has no effect — included for reference).
+# 2QPU circuits use BSM entanglement so emission_fidelity is active via DQC_EMIT.
+# Sweep is mutually exclusive with plaquette_gate_depol_sweep_20261030:
+#   this sweep  → vary emission_fidelity, fix depol=0
+#   depol sweep → vary depol, fix emission_fidelity=1.0
+
+source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/parameters.yml
+base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
+output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/plaquette_emf_sweep_n6
+
+n_steps: 6
+num_runs: 500
+max_workers: 8
+center_qubit: 4          # meas_4 = center of 3x3 / L=9 chain
+circuit_mode: cisco_v2
+
+# Depol fixed at 0 for all conditions
+two_q_depolar_prob: 0.0
+one_q_depolar_prob: 0.0
+
+# Per-circuit entanglement method:
+#   1QPU → magic (no cross-QPU ops; emission_fidelity has zero effect)
+#   2QPU → bsm   (DQC_EMIT is called; emission_fidelity degrades each distribution CNOT)
+circuits:
+  1d_1qpu:
+    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+    entanglement_method: magic
+    num_runs: 500  # already complete — keep existing CSVs
+  1d_2qpu:
+    qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+    entanglement_method: bsm
+    num_runs: 200
+  2d_1qpu:
+    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+    entanglement_method: magic
+    num_runs: 200
+  2d_2qpu:
+    qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+    entanglement_method: bsm
+    num_runs: 200
+
+# emission_fidelity=1.0 first as ideal reference, then degrading.
+emission_fidelity_values:
+  - 1.00
+  - 0.99
+  - 0.98
+  - 0.97
+  - 0.96
