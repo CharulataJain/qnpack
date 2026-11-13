@@ -237,6 +237,23 @@ class DQCSimulation(Simulation):
             f"--- Run {run_idx}: SIMULATION START TIME: {start_time} ns ---"
         )
 
+        from netsquid.components.clock import Clock
+
+        def _stop_on_protocol_success(ev):
+            # Calling sim_run(end_time=T) in pydynaa fast-forwards sim_time()
+            # to T when the event queue drains unless sim_stop() is called.
+            # Stop at the exact completion instant only if no clock is stranded
+            # (so an orphaned clock still runs into the safety cap).
+            for node in net.nodes.values():
+                for sub in node.subcomponents.values():
+                    if isinstance(sub, Clock) and sub.is_running:
+                        return
+            ns.sim_stop()
+
+        stop_handler = pd.EventHandler(_stop_on_protocol_success)
+        protocol._wait(
+            stop_handler, entity=protocol, event_type=Signals.SUCCESS.value
+        )
         protocol.start()
         ns.sim_run()
 
