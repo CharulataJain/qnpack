@@ -20,7 +20,7 @@ import os
 
 from qnpack.common.constants import Constants
 
-from .simulation import DQCSimulation
+from qnpack.dqc.simulation import DQCSimulation
 
 __all__ = ["DQCSimulation", "main"]
 

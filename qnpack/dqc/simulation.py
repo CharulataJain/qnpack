@@ -17,11 +17,12 @@ import json
 import hashlib
 import logging
 import os
-import sys
 import multiprocessing as mp
 import copy
 import pickle
 import random
+import signal
+import sys
 import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
 from types import SimpleNamespace
@@ -46,23 +47,66 @@ from .network import build_network, load_topology
 
 log = logging.getLogger(__name__)
 
+# 10 s of simulation-time — 200× the worst observed normal run (~48 ms).
+# Orphaned-clock hangs accumulate to seconds then minutes of sim-time, so
+# this cap stops them without ever triggering on a legitimate slow run.
+_SIM_RUN_SAFETY_CAP_NS = 10_000_000_000
+
+# Wall-clock cap per worker process.  The 1 MHz controller/BSM clock ticks
+# every 1 µs of sim-time; at 10M ticks the sim-time cap would fire, but each
+# tick involves quantum-state processing that can cost 100 µs–1 ms of real
+# time → potentially hours before the sim-time cap triggers.  SIGALRM kills
+# the run after this many real seconds regardless of what the simulation is
+# doing.  Normal plaquette BSM runs finish in well under 60 s of real time.
+_REAL_TIME_CAP_SECONDS = 120
+
+
+class SimulationHangError(RuntimeError):
+    """Raised when a run hits the simulation-time safety cap.
+
+    Almost always caused by an orphaned clock (max_ticks=-1) that was not
+    stopped during teardown.  The run is discarded; the sweep continues.
+    """
+
+
+def _wall_clock_alarm_handler(signum, frame):
+    raise SimulationHangError(
+        f"Run exceeded the {_REAL_TIME_CAP_SECONDS}s real-time cap. "
+        "The simulation-time cap alone does not bound real time when each "
+        "1 MHz clock tick is expensive (BSM quantum-state processing). "
+        "Run discarded."
+    )
+
+
 def _run_isolated(job):
-    """Execute exactly one NetSquid run in a disposable worker process."""
-    config_data, base_dir, topology_data, measure_qubits, run_idx, payload = job
-    simulation = DQCSimulation.__new__(DQCSimulation)
-    simulation.cfg = munchify(config_data)
-    simulation.base_dir = base_dir
-    simulation._last_protocol = None
-    ns.set_qstate_formalism(cfg_util.resolve_formalism(simulation.cfg))
+    """Execute exactly one NetSquid run in a disposable worker process.
 
-    if payload is None:
-        frontend, _ = load_frontend(simulation.cfg.circuit, base_dir=base_dir)
-    else:
-        frontend = simulation._frontend_for_payload(payload, measure_qubits)
-        simulation._install_labeled_payload(payload)
+    A SIGALRM real-time cap is installed around the entire run so that
+    an orphaned 1 MHz clock that makes ``ns.sim_run`` expensive in real
+    time cannot stall the worker for more than ``_REAL_TIME_CAP_SECONDS``.
+    """
+    # Install real-time cap.  signal.alarm() is only valid in the main thread
+    # of a process; each spawned worker IS its own main thread.
+    signal.signal(signal.SIGALRM, _wall_clock_alarm_handler)
+    signal.alarm(_REAL_TIME_CAP_SECONDS)
+    try:
+        config_data, base_dir, topology_data, measure_qubits, run_idx, payload = job
+        simulation = DQCSimulation.__new__(DQCSimulation)
+        simulation.cfg = munchify(config_data)
+        simulation.base_dir = base_dir
+        simulation._last_protocol = None
+        ns.set_qstate_formalism(cfg_util.resolve_formalism(simulation.cfg))
 
-    return simulation._run_one(run_idx, measure_qubits, frontend,
-                               topology_data)
+        if payload is None:
+            frontend, _ = load_frontend(simulation.cfg.circuit, base_dir=base_dir)
+        else:
+            frontend = simulation._frontend_for_payload(payload, measure_qubits)
+            simulation._install_labeled_payload(payload)
+
+        return simulation._run_one(run_idx, measure_qubits, frontend,
+                                   topology_data)
+    finally:
+        signal.alarm(0)  # Cancel the alarm so it does not fire after return.
 
 
 class DQCSimulation(Simulation):
@@ -81,7 +125,7 @@ class DQCSimulation(Simulation):
         self._last_protocol = None
 
         setup_logging(
-            name=__name__,
+            name=__package__ or __name__,
             level=logging.DEBUG if self.cfg.sim.debug else logging.INFO,
             logfile=logfile,
         )
@@ -170,7 +214,8 @@ class DQCSimulation(Simulation):
 
         if not completed:
             raise RuntimeError(
-                "All simulation runs failed — no results to aggregate."
+                "All simulation runs were discarded (every run hit the "
+                "simulation-time safety cap). Check for orphaned clocks."
             )
         results = [item[0] for item in completed]
         col_names = completed[0][1]
@@ -179,10 +224,11 @@ class DQCSimulation(Simulation):
         return results, col_names, completed[0][2], completed[0][3]
 
     @staticmethod
-    def _execute_jobs(jobs, max_workers, total_runs):
+    def _execute_jobs(jobs, max_workers, total_runs, strip_none=True):
         jobs_list = list(jobs)
         n = len(jobs_list)
         results = [None] * n
+        hangs = 0
         pool_kwargs = dict(
             max_workers=min(max_workers, total_runs),
             mp_context=mp.get_context("spawn"),
@@ -196,8 +242,18 @@ class DQCSimulation(Simulation):
             }
             for future in concurrent.futures.as_completed(futures):
                 idx = futures[future]
-                results[idx] = future.result()
-        return [r for r in results if r is not None]
+                try:
+                    results[idx] = future.result()
+                except SimulationHangError as exc:
+                    hangs += 1
+                    log.warning(f"[run {idx}] discarded: {exc}")
+        valid = [r for r in results if r is not None]
+        if hangs:
+            log.warning(
+                f"{hangs}/{n} run(s) hit the simulation-time safety cap and "
+                "were discarded. The remaining %d runs are intact.", len(valid)
+            )
+        return valid if strip_none else results
 
     def _run_one(self, run_idx, measure_qubits, frontend,
                  topology_data):
@@ -243,22 +299,31 @@ class DQCSimulation(Simulation):
         from netsquid.components.clock import Clock
 
         def _stop_on_protocol_success(ev):
-            # Stop any still-running clocks (BSM/controller clocks have
-            # max_ticks=-1 and will keep the event queue non-empty forever
-            # unless explicitly stopped here). Then stop the simulation at
-            # the exact instant the protocol signals SUCCESS.
+            # Calling sim_run(end_time=T) in pydynaa fast-forwards sim_time()
+            # to T when the event queue drains unless sim_stop() is called.
+            # Stop at the exact completion instant only if no clock is stranded
+            # (so an orphaned clock still runs into the safety cap).
             for node in net.nodes.values():
                 for sub in node.subcomponents.values():
                     if isinstance(sub, Clock) and sub.is_running:
-                        sub.stop()
+                        return
             ns.sim_stop()
 
         stop_handler = pd.EventHandler(_stop_on_protocol_success)
         protocol._wait(
             stop_handler, entity=protocol, event_type=Signals.SUCCESS.value
         )
+
         protocol.start()
-        ns.sim_run()
+        ns.sim_run(end_time=_SIM_RUN_SAFETY_CAP_NS)
+        if ns.sim_time() >= _SIM_RUN_SAFETY_CAP_NS:
+            protocol.stop()
+            self._halt_free_running_clocks(net, run_idx)
+            raise SimulationHangError(
+                f"Run {run_idx} hit the {_SIM_RUN_SAFETY_CAP_NS/1e9:.0f}s "
+                "simulation-time safety cap. Likely cause: an orphaned clock "
+                "(max_ticks=-1) not stopped before teardown. Run discarded."
+            )
 
         col_names = frontend.get_col_names(measure_qubits)
         row = self._collect_row(
@@ -460,12 +525,28 @@ class DQCSimulation(Simulation):
             for _, _, config_data in scheduled
             for run_idx in range(num_runs)
         )
-        completed = self._execute_jobs(jobs, max_workers, len(combos) * num_runs)
-        self._last_protocol = completed[-1][4]
+        raw_completed = self._execute_jobs(
+            jobs, max_workers, len(combos) * num_runs, strip_none=False
+        )
+        valid_completed = [r for r in raw_completed if r is not None]
+        if not valid_completed:
+            raise RuntimeError(
+                "All simulation runs were discarded (every run hit the "
+                "simulation-time safety cap). Check for orphaned clocks."
+            )
+        self._last_protocol = valid_completed[-1][4]
 
         final_data = []
         for combo_idx, (params, noise_label, _) in enumerate(scheduled):
-            config_runs = completed[combo_idx * num_runs:(combo_idx + 1) * num_runs]
+            raw_slice = raw_completed[
+                combo_idx * num_runs:(combo_idx + 1) * num_runs
+            ]
+            config_runs = [r for r in raw_slice if r is not None]
+            if not config_runs:
+                raise RuntimeError(
+                    f"All simulation runs for config '{noise_label}' were "
+                    "discarded (every run hit the simulation-time safety cap)."
+                )
             results = [item[0] for item in config_runs]
             col_names = config_runs[0][1]
             num_output_bits = config_runs[0][2]
