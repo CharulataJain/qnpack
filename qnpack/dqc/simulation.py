@@ -21,7 +21,6 @@ import multiprocessing as mp
 import copy
 import pickle
 import random
-import signal
 import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
 from types import SimpleNamespace
@@ -46,66 +45,23 @@ from .network import build_network, load_topology
 
 log = logging.getLogger(__name__)
 
-# 10 s of simulation-time — 200× the worst observed normal run (~48 ms).
-# Orphaned-clock hangs accumulate to seconds then minutes of sim-time, so
-# this cap stops them without ever triggering on a legitimate slow run.
-_SIM_RUN_SAFETY_CAP_NS = 10_000_000_000
-
-# Wall-clock cap per worker process.  The 1 MHz controller/BSM clock ticks
-# every 1 µs of sim-time; at 10M ticks the sim-time cap would fire, but each
-# tick involves quantum-state processing that can cost 100 µs–1 ms of real
-# time → potentially hours before the sim-time cap triggers.  SIGALRM kills
-# the run after this many real seconds regardless of what the simulation is
-# doing.  Normal plaquette BSM runs finish in well under 60 s of real time.
-_REAL_TIME_CAP_SECONDS = 120
-
-
-class SimulationHangError(RuntimeError):
-    """Raised when a run hits the simulation-time safety cap.
-
-    Almost always caused by an orphaned clock (max_ticks=-1) that was not
-    stopped during teardown.  The run is discarded; the sweep continues.
-    """
-
-
-def _wall_clock_alarm_handler(signum, frame):
-    raise SimulationHangError(
-        f"Run exceeded the {_REAL_TIME_CAP_SECONDS}s real-time cap. "
-        "The simulation-time cap alone does not bound real time when each "
-        "1 MHz clock tick is expensive (BSM quantum-state processing). "
-        "Run discarded."
-    )
-
-
 def _run_isolated(job):
-    """Execute exactly one NetSquid run in a disposable worker process.
+    """Execute exactly one NetSquid run in a disposable worker process."""
+    config_data, base_dir, topology_data, measure_qubits, run_idx, payload = job
+    simulation = DQCSimulation.__new__(DQCSimulation)
+    simulation.cfg = munchify(config_data)
+    simulation.base_dir = base_dir
+    simulation._last_protocol = None
+    ns.set_qstate_formalism(cfg_util.resolve_formalism(simulation.cfg))
 
-    A SIGALRM real-time cap is installed around the entire run so that
-    an orphaned 1 MHz clock that makes ``ns.sim_run`` expensive in real
-    time cannot stall the worker for more than ``_REAL_TIME_CAP_SECONDS``.
-    """
-    # Install real-time cap.  signal.alarm() is only valid in the main thread
-    # of a process; each spawned worker IS its own main thread.
-    signal.signal(signal.SIGALRM, _wall_clock_alarm_handler)
-    signal.alarm(_REAL_TIME_CAP_SECONDS)
-    try:
-        config_data, base_dir, topology_data, measure_qubits, run_idx, payload = job
-        simulation = DQCSimulation.__new__(DQCSimulation)
-        simulation.cfg = munchify(config_data)
-        simulation.base_dir = base_dir
-        simulation._last_protocol = None
-        ns.set_qstate_formalism(cfg_util.resolve_formalism(simulation.cfg))
+    if payload is None:
+        frontend, _ = load_frontend(simulation.cfg.circuit, base_dir=base_dir)
+    else:
+        frontend = simulation._frontend_for_payload(payload, measure_qubits)
+        simulation._install_labeled_payload(payload)
 
-        if payload is None:
-            frontend, _ = load_frontend(simulation.cfg.circuit, base_dir=base_dir)
-        else:
-            frontend = simulation._frontend_for_payload(payload, measure_qubits)
-            simulation._install_labeled_payload(payload)
-
-        return simulation._run_one(run_idx, measure_qubits, frontend,
-                                   topology_data)
-    finally:
-        signal.alarm(0)  # Cancel the alarm so it does not fire after return.
+    return simulation._run_one(run_idx, measure_qubits, frontend,
+                               topology_data)
 
 
 class DQCSimulation(Simulation):
@@ -213,8 +169,7 @@ class DQCSimulation(Simulation):
 
         if not completed:
             raise RuntimeError(
-                "All simulation runs were discarded (every run hit the "
-                "simulation-time safety cap). Check for orphaned clocks."
+                "All simulation runs failed — no results to aggregate."
             )
         results = [item[0] for item in completed]
         col_names = completed[0][1]
@@ -227,7 +182,6 @@ class DQCSimulation(Simulation):
         jobs_list = list(jobs)
         n = len(jobs_list)
         results = [None] * n
-        hangs = 0
         with ProcessPoolExecutor(
             max_workers=min(max_workers, total_runs),
             mp_context=mp.get_context("spawn"),
@@ -239,18 +193,8 @@ class DQCSimulation(Simulation):
             }
             for future in concurrent.futures.as_completed(futures):
                 idx = futures[future]
-                try:
-                    results[idx] = future.result()
-                except SimulationHangError as exc:
-                    hangs += 1
-                    log.warning(f"[run {idx}] discarded: {exc}")
-        valid = [r for r in results if r is not None]
-        if hangs:
-            log.warning(
-                f"{hangs}/{n} run(s) hit the simulation-time safety cap and "
-                "were discarded. The remaining %d runs are intact.", len(valid)
-            )
-        return valid
+                results[idx] = future.result()
+        return [r for r in results if r is not None]
 
     def _run_one(self, run_idx, measure_qubits, frontend,
                  topology_data):
@@ -294,15 +238,7 @@ class DQCSimulation(Simulation):
         )
 
         protocol.start()
-        ns.sim_run(end_time=_SIM_RUN_SAFETY_CAP_NS)
-        if ns.sim_time() >= _SIM_RUN_SAFETY_CAP_NS:
-            protocol.stop()
-            self._halt_free_running_clocks(net, run_idx)
-            raise SimulationHangError(
-                f"Run {run_idx} hit the {_SIM_RUN_SAFETY_CAP_NS/1e9:.0f}s "
-                "simulation-time safety cap. Likely cause: an orphaned clock "
-                "(max_ticks=-1) not stopped before teardown. Run discarded."
-            )
+        ns.sim_run()
 
         col_names = frontend.get_col_names(measure_qubits)
         row = self._collect_row(
