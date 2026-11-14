@@ -54,12 +54,13 @@ def main(argv=None):
 
     manifest_path = Path(__file__).with_name("manifest.yml")
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    anchor = manifest_path.parent
 
-    base_dir = Path(manifest["base_dir"])
-    output_dir = Path(manifest["output_dir"])
+    base_dir = (anchor / manifest["base_dir"]).resolve()
+    output_dir = (anchor / manifest["output_dir"]).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    source_cfg = yaml.safe_load(Path(manifest["source_parameters"]).read_text(encoding="utf-8"))
+    source_cfg = yaml.safe_load((anchor / manifest["source_parameters"]).resolve().read_text(encoding="utf-8"))
     initpl_values = manifest["init_photon_loss_values"]
     circuits = manifest["circuits"]
 

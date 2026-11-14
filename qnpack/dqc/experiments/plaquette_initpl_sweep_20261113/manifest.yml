@@ -13,9 +13,9 @@
 #   python -m qnpack.dqc.experiments.plaquette_initpl_sweep_20261113.run_sweep \
 #     --num-runs 2 --circuit-label 1d_2qpu --rate-index 4
 
-source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/experiments/plaquette_baseline.yml
-base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
-output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/plaquette_initpl_sweep_n6
+source_parameters: ../plaquette_baseline.yml
+base_dir: ../..
+output_dir: ../../results/plaquette_initpl_sweep_n6
 
 n_steps: 6
 center_qubit: 4
@@ -36,17 +36,9 @@ one_q_depolar_prob: 0.0
 init_photon_loss_values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 circuits:
-  1d_1qpu:
-    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
-    entanglement_method: magic
-    num_runs: 500
   1d_2qpu:
     qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
     entanglement_method: bsm
-    num_runs: 200
-  2d_1qpu:
-    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
-    entanglement_method: magic
     num_runs: 200
   2d_2qpu:
     qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm

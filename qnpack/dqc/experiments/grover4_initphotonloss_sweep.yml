@@ -26,7 +26,6 @@ entanglement_method: bsm
 formalism: KET
 qpu_circuits:
   2: qasm/grover4_2qpu.qasm
-  3: qasm/grover4_3qpu.qasm
 sweep:
   section: channel
   key: init_photon_loss
