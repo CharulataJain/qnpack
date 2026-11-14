@@ -1,0 +1,34 @@
+# init_photon_loss sweep for Grover4, 2 & 3 QPU, BSM/KET mode.
+# All other realistic noise is on: T1=1e9, T2=1e8, emission_fidelity=0.99,
+# collection_efficiency=0.85, photon_loss=0.2, fiber_depolar_rate=0.2.
+# 1QPU excluded: init_photon_loss only affects inter-QPU photon channels.
+#
+# Run:
+#   python -m qnpack.dqc.experiments.grover_channel_sweep \
+#     --manifest qnpack/dqc/experiments/grover4_initphotonloss_sweep.yml
+#
+# Smoke test (2QPU, initpl=0.3, 2 runs):
+#   python -m qnpack.dqc.experiments.grover_channel_sweep \
+#     --manifest qnpack/dqc/experiments/grover4_initphotonloss_sweep.yml \
+#     --num-runs 2 --qpu-count 2 --rate-index 4 \
+#     --output-dir /tmp/smoke_grover4_initpl
+
+algorithm: grover4
+parameters_file: grover_bsm_ket_initpl_baseline.yml
+base_dir: ..
+output_dir: ../results/grover4_bsm_ket_initphotonloss_sweep_20261113
+num_runs: 500
+max_workers: 16
+numerical_threads_per_worker: 1
+target_bitstring: '1011'
+circuit_mode: cisco
+entanglement_method: bsm
+formalism: KET
+qpu_circuits:
+  2: qasm/grover4_2qpu.qasm
+  3: qasm/grover4_3qpu.qasm
+sweep:
+  section: channel
+  key: init_photon_loss
+  tag: initpl
+  values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]

@@ -1,0 +1,54 @@
+# init_photon_loss sweep for plaquette n=6, 1D and 2D, cisco_v2/BSM/KET mode.
+# All other realistic noise is on: T1=1e9, T2=1e8, emission_fidelity=0.99,
+# collection_efficiency=0.85, photon_loss=0.2, fiber_depolar_rate=0.2.
+# Gate depol fixed at 0 (channel noise study).
+#
+# 1QPU circuits use magic (no photon channels — reference line).
+# 2QPU circuits use BSM so init_photon_loss is active.
+#
+# Run:
+#   python -m qnpack.dqc.experiments.plaquette_initpl_sweep_20261113.run_sweep
+#
+# Smoke test (1d_2qpu, initpl=0.3, 2 runs):
+#   python -m qnpack.dqc.experiments.plaquette_initpl_sweep_20261113.run_sweep \
+#     --num-runs 2 --circuit-label 1d_2qpu --rate-index 4
+
+source_parameters: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/experiments/plaquette_baseline.yml
+base_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc
+output_dir: /Users/cjain/Documents/Repositories/charu-qnpack/qnpack/qnpack/dqc/results/plaquette_initpl_sweep_n6
+
+n_steps: 6
+center_qubit: 4
+circuit_mode: cisco_v2
+num_runs: 500
+max_workers: 8
+
+# Noise fixed for all conditions (init_photon_loss swept below)
+T1: 1000000000
+T2: 100000000
+emission_fidelity: 0.99
+collection_efficiency: 0.85
+photon_loss: 0.2
+fiber_depolar_rate: 0.2
+two_q_depolar_prob: 0.0
+one_q_depolar_prob: 0.0
+
+init_photon_loss_values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+
+circuits:
+  1d_1qpu:
+    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+    entanglement_method: magic
+    num_runs: 500
+  1d_2qpu:
+    qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
+    entanglement_method: bsm
+    num_runs: 200
+  2d_1qpu:
+    qasm: qasm/plaquette_sweep/9qubit_1qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+    entanglement_method: magic
+    num_runs: 200
+  2d_2qpu:
+    qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
+    entanglement_method: bsm
+    num_runs: 200
