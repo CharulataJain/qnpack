@@ -1,0 +1,2 @@
+circuit,entanglement_method,init_photon_loss,num_runs,top_bitstring,top_count,top_probability,raw_csv
+2qpu,bsm,0,2,011011000,1,0.5,qaoa9_tket_bsm_ket_2qpu_initpl0_2runs.csv
