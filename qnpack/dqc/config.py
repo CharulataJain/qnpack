@@ -228,12 +228,31 @@ def require_epr_factory_config(cfg):
 
 
 def require_entanglement_config(cfg):
-    """Validate the explicit entanglement method and its required settings."""
+    """Validate the explicit entanglement method and its required settings.
+
+    Supported methods
+    -----------------
+    ``'bsm'``
+        Full physical simulation: photon emission, channel, BSM detector,
+        retries.  Requires the complete ``bsm:`` config block.
+    ``'magic'``
+        Perfect Bell pairs via ``PerfectStateMagicDistributor`` with a
+        configurable delay.  Requires ``entanglement.magic_state_delay_ns``
+        and ``epr_factory.enabled=false``.
+    ``'epr_model'``
+        Abstract EPR model via ``DepolariseMagicDistributor``.  Derives
+        effective fidelity and herald success probability from the same
+        physical noise parameters as ``'bsm'`` mode (``qpu``, ``memory``,
+        ``gate_durations``, ``channel``, and the ``bsm.deterministic_bsm`` /
+        ``bsm.coupling_efficiency`` keys).  Requires
+        ``epr_factory.enabled=false``.
+    """
     ent = require_cfg(cfg, 'entanglement', '<root>')
     method = require_cfg(ent, 'method', 'entanglement')
-    if method not in ('magic', 'bsm'):
+    if method not in ('magic', 'bsm', 'epr_model'):
         raise ValueError(
-            f"Unsupported entanglement.method {method!r}; expected 'magic' or 'bsm'"
+            f"Unsupported entanglement.method {method!r}; "
+            f"expected 'magic', 'bsm', or 'epr_model'"
         )
     if method == 'magic':
         delay = require_cfg(ent, 'magic_state_delay_ns', 'entanglement')
@@ -251,7 +270,24 @@ def require_entanglement_config(cfg):
             raise ValueError(
                 'entanglement.method=magic requires epr_factory.enabled=false'
             )
-    else:
+    elif method == 'epr_model':
+        if require_cfg(cfg.epr_factory, 'enabled', 'epr_factory'):
+            raise ValueError(
+                'entanglement.method=epr_model requires epr_factory.enabled=false'
+            )
+        # All three EPR model parameters must come from the YAML — no defaults.
+        for key in ('epr_fidelity', 'epr_rate_hz', 'epr_success_prob'):
+            require_cfg(ent, key, 'entanglement')
+        # BSM nodes are still built by the network builder (even though the BSM
+        # protocols sit idle for epr_model runs), so the full bsm block is required.
+        bsm = require_cfg(cfg, 'bsm', '<root>')
+        for key in (
+            'detection_window', 'system_delay', 'coupling_efficiency',
+            'deterministic_bsm', 'detector_dead_time', 'error_on_fail',
+            'detector_wait_factor', 'max_emission_retries', 'retry_duration',
+        ):
+            require_cfg(bsm, key, 'bsm')
+    else:  # 'bsm'
         bsm = require_cfg(cfg, 'bsm', '<root>')
         for key in (
             'detection_window', 'system_delay', 'coupling_efficiency',

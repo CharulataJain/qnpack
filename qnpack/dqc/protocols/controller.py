@@ -1877,7 +1877,7 @@ class ControllerProtocol(NodeProtocol):
                     needs_entanglement = label in self.entanglement_gen_labels
                     needs_magic = (
                         needs_entanglement
-                        and self.cfg.entanglement.method == 'magic'
+                        and self.cfg.entanglement.method in ('magic', 'epr_model')
                     )
                     needs_bsm = (
                         needs_entanglement
@@ -1957,7 +1957,7 @@ class ControllerProtocol(NodeProtocol):
                         self._harvest_refill()
 
                     label_type = (
-                        "entanglement_gen[magic]" if needs_magic
+                        f"entanglement_gen[{self.cfg.entanglement.method}]" if needs_magic
                         else "entanglement_gen" if needs_bsm
                         else ("entanglement_gen[pool]" if use_pool
                               else "starting_process")

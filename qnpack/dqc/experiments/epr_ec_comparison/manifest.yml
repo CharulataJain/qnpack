@@ -1,0 +1,103 @@
+# EPR model vs physical BSM comparison.
+#
+# Two entanglement conditions:
+#   bsm       — full physical simulation
+#   epr_model — abstract depolarised EPR pairs; d=3 surface-code error correction
+#
+# Three circuit modes:
+#   cisco     — Grover4 2QPU  (qasm/grover4_2qpu.qasm)
+#   tket      — Grover4 3QPU  (commands/grover_4_3qpu.txt)
+#   cisco_v2  — Plaquette 1D  (qasm/2qpu_plaq121_obc_L8_g0.500_dt0.1000_n8.qasm)
+#
+# All losses set to zero — only depolarising noise sources are active.
+# This gives p_herald=1.0 (BSM always succeeds on first try).
+# All values taken from this file — no hardcoded defaults in code.
+
+base_dir: ../..
+output_dir: ../../results/epr_ec_comparison
+topology_file: topology/topology_v2.json
+
+# Optical switch (required because topology_v2.json has 3 BSM nodes → switch mode)
+switch:
+  port_insertion_loss: 0
+  mems_latency_ns:     0
+  internal_length_km:  0.01
+
+# ── Noise params (all losses = 0, depolarising noise only) ──────────────────
+# Losses removed: photon_loss=0, init_photon_loss=0, collection_efficiency=1, coupling_efficiency=1
+# Noise kept: emission_fidelity (photon depol), fiber_depolar_rate (channel depol),
+#             one_q/two_q gate depol, T1/T2 memory decoherence.
+# compute_epr_params → F_eff=0.76060, p_herald=1.0 (always succeeds).
+noise:
+  emission_fidelity:     0.96
+  collection_efficiency: 1.0
+  coupling_efficiency:   1.0
+  photon_loss:           0.0
+  init_photon_loss:      0.0
+  fiber_depolar_rate:    0.2
+  simulated_length_km:   0.01
+  missing_length_km:     1
+  T1:                    6.0e8
+  T2:                    6.2e7
+  one_q_depolar_prob:    1.0e-5
+  two_q_depolar_prob:    1.0e-4
+  one_q_gate_duration:   5000.0
+  two_q_gate_duration:   10700.0
+
+# ── EPR model knobs (d=3 surface code error correction) ──────────────────────
+# Physical BSM gives F_eff=0.76060 (emission + fiber depol noise, no losses).
+# F=0.76 is below fault-tolerance threshold (F_th≈0.871) for Full SotA.
+# EPR model represents improved hardware (fiber_dep→0.002 → F_phys=0.944) + d=3 EC.
+# From epr_threshold_study (qnpack-dev/charu-ft): LER(d=3)≈0.07 → F_logical≈0.93.
+# epr_success_prob=1.0: EC distillation always produces a usable pair.
+epr_model:
+  epr_fidelity:     0.93
+  epr_rate_hz:      63694.27
+  epr_success_prob: 1.0
+
+# ── BSM hardware config (required by network builder for all modes) ──────────
+bsm:
+  deterministic_bsm:   true
+  detection_window:    4320000
+  system_delay:        0
+  coupling_efficiency: 1.0
+  detector_wait_factor: 1.05
+  max_emission_retries: 90
+  retry_duration:      0
+  detector_dead_time:  0
+  error_on_fail:       false
+
+# ── Run counts ───────────────────────────────────────────────────────────────
+bsm_num_runs:   100
+epr_num_runs:   300
+max_workers:    8
+
+# ── Circuits ─────────────────────────────────────────────────────────────────
+circuits:
+  cisco_grover:
+    label:            "Grover4 2QPU (cisco)"
+    mode:             cisco
+    qasm:             qasm/grover4_2qpu.qasm
+    num_qpu_nodes:    2
+    num_qubits:       6
+    target_bitstring: "1011"
+    metric:           p_target
+
+  tket_grover:
+    label:            "Grover4 3QPU (tket)"
+    mode:             tket
+    dist_commands:    commands/grover_4_3qpu.txt
+    measure_qubits:   "{1: [21, 20], 2: [20], 3: [20]}"
+    num_qpu_nodes:    3
+    num_qubits:       6
+    target_bitstring: "1011"
+    metric:           p_target
+
+  cisco_v2_plaquette:
+    label:            "Plaquette 1D 2QPU (cisco_v2)"
+    mode:             cisco_v2
+    qasm:             qasm/2qpu_plaq121_obc_L8_g0.500_dt0.1000_n8.qasm
+    num_qpu_nodes:    2
+    num_qubits:       6
+    metric:           p_center
+    center_col:       meas_4

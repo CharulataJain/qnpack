@@ -1834,7 +1834,7 @@ class QPUProtocol(NodeProtocol):
                     _qubits = op.get('qubits') or []
                     nominated = _qubits[0] if _qubits else None
 
-                use_magic = self.cfg.entanglement.method == 'magic'
+                use_magic = self.cfg.entanglement.method in ('magic', 'epr_model')
                 magic_position = None
                 if use_magic:
                     if nominated is None:

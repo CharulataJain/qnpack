@@ -12,6 +12,7 @@ from .switch import SwitchedEntanglementWorker, QuantumSwitchProtocol
 from .epr_pool import EPRPairEntry, EPRPairPool
 from .fidelity import FidelityTracker
 from .epr_factory import EPRFactoryProtocol, FactoryEntanglementWorker
+from .epr_model import compute_epr_params
 
 __all__ = [
     "DQCProtocol",
@@ -32,4 +33,5 @@ __all__ = [
     "FidelityTracker",
     "EPRFactoryProtocol",
     "FactoryEntanglementWorker",
+    "compute_epr_params",
 ]

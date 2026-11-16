@@ -12,8 +12,14 @@ Instantiates and manages:
 import logging
 
 import netsquid as ns
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
-from netsquid_magic.model_parameters import PerfectModelParameters
+from netsquid_magic.magic_distributor import (
+    PerfectStateMagicDistributor,
+    DepolariseMagicDistributor,
+)
+from netsquid_magic.model_parameters import (
+    PerfectModelParameters,
+    DepolariseModelParameters,
+)
 from netsquid.protocols.nodeprotocols import LocalProtocol
 from netsquid.protocols.protocol import Signals
 
@@ -79,6 +85,35 @@ class DQCProtocol(LocalProtocol):
                     self.magic_distributors[pair] = PerfectStateMagicDistributor(
                         nodes=[left_node, right_node],
                         model_params=PerfectModelParameters(state_delay=state_delay),
+                    )
+                    self.magic_distributors[pair].add_callback(
+                        controller_protocol._handle_magic_delivery
+                    )
+            controller_protocol.magic_distributors = self.magic_distributors
+
+        elif self.cfg.entanglement.method == 'epr_model':
+            ent = self.cfg.entanglement
+            fidelity     = float(ent.epr_fidelity)
+            rate_hz      = float(ent.epr_rate_hz)
+            p_herald     = float(ent.epr_success_prob)
+            prob_max_mixed = max(0.0, min(1.0, (4.0 / 3.0) * (1.0 - fidelity)))
+            cycle_time_ns  = 1e9 / rate_hz if rate_hz > 0.0 else 0.0
+            log.info(
+                "EPR model distributors: fidelity=%.5f  prob_max_mixed=%.5f  "
+                "p_herald=%.5f  cycle_time_ns=%.1f",
+                fidelity, prob_max_mixed, p_herald, cycle_time_ns,
+            )
+            model_params = DepolariseModelParameters(
+                cycle_time=cycle_time_ns,
+                prob_max_mixed=prob_max_mixed,
+                prob_success=p_herald,
+            )
+            for left_index, left_node in enumerate(self.qpu_nodes):
+                for right_node in self.qpu_nodes[left_index + 1:]:
+                    pair = frozenset((left_node.ID, right_node.ID))
+                    self.magic_distributors[pair] = DepolariseMagicDistributor(
+                        nodes=[left_node, right_node],
+                        model_params=model_params,
                     )
                     self.magic_distributors[pair].add_callback(
                         controller_protocol._handle_magic_delivery

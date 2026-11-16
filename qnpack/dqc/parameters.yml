@@ -83,6 +83,8 @@ channel:
   quantum_noise_model: "DepolarNoiseModel"  # Quantum noise model type
   fiber_depolar_rate: 0 #0.2      # Depolarization rate in fiber.
   time_independent: true          # true = rate is direct depol probability per photon (recommended for short channels)
+  simulated_length_km: 0.01       # Physical channel length used by FibreLossModel and FibreDelayModel (km)
+  missing_length_km: 1            # Fallback channel length for topology edges without an explicit length (km)
 
 bsm:
   # BSM circuit style under the STAB formalism (ignored when formalism is KET,
@@ -95,7 +97,46 @@ bsm:
   detection_window: 4320000       # BSM detector gating window (ns)
   system_delay: 0                 # BSM detector system delay (ns)
   coupling_efficiency: 1          # Photon coupling efficiency (0 to 1)
-  detector_wait_factor: 1.05       # Multiplier on travel time for detector dead wait
+  detector_wait_factor: 1.05      # Multiplier on travel time for detector dead wait
   max_emission_retries: 90        # Maximum retry attempts for photon emission
   retry_duration: 0               # Duration between retries (ns)
+  detector_dead_time: 0           # Dead time after a detection event (ns)
+  error_on_fail: false            # Raise error (true) or silently continue (false) if entanglement fails
+
+switch:
+  port_insertion_loss: 0      # Loss per switch port (fractional, 0=lossless)
+  mems_latency_ns: 0          # MEMS switching latency (ns)
+  internal_length_km: 0.01    # Internal fibre length inside the switch (km)
+
+# Entanglement generation method.
+# method: bsm   — full physical simulation (photon emission, channel, BSM detector, retries)
+# method: magic — perfect Bell pairs via PerfectStateMagicDistributor (magic_state_delay_ns required)
+# method: epr_model — abstract EPR pairs via DepolariseMagicDistributor.
+#                     All three knobs below are required when method=epr_model.
+#                     Use compute_epr_params() from protocols/epr_model.py to derive these
+#                     from physical parameters, or set them directly for surface-code scenarios.
+#
+epr_factory:
+  enabled:          false
+  pool_only:        false   # required by QPUProtocol even when factory is disabled
+  drain_timeout_ns: 0       # required by QPUProtocol even when factory is disabled
+
+# epr_model knobs (all required when method=epr_model, all from this file, no code defaults):
+#   epr_fidelity     — Werner-state Bell pair fidelity F ∈ (0.25, 1.0]
+#                      Physical BSM:  compute via epr_model.compute_epr_params()
+#                      d=3 surface code (above threshold, fiber_dep=0.002): ~0.93
+#                      d=3 surface code (Full SotA, below threshold):       ~0.68
+#   epr_rate_hz      — EPR generation attempt rate in Hz (gate-limited or EC-limited)
+#                      Physical gate-limited (H+CNOT cycle): 1e9/(one_q+two_q) ≈ 63.7 kHz
+#                      Full SotA with p_herald: effective_rate = rate × p_herald
+#   epr_success_prob — per-attempt herald success probability ∈ (0, 1]
+#                      Physical BSM: = bsm_factor × p_survive²
+#                      Surface-code EC (post-distillation): 1.0 (always succeeds)
+entanglement:
+  method: bsm
+  magic_state_delay_ns: 0
+  # Uncomment and fill in when switching to method: epr_model
+  # epr_fidelity: 0.9445       # e.g. low-fiber-depol SotA + d=3 surface code
+  # epr_rate_hz: 22213.0       # gate-limited attempt rate
+  # epr_success_prob: 1.0      # 1.0 after EC distillation; <1 for raw physical herald
 

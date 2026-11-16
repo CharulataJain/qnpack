@@ -13,6 +13,8 @@ class MissingConfigError(SystemExit):
     """
 
     def __init__(self, section: str, key: str):
+        self._section = section
+        self._key = key
         msg = (
             f"\n{'=' * 60}\n"
             f"  MISSING REQUIRED CONFIGURATION\n"
@@ -26,6 +28,9 @@ class MissingConfigError(SystemExit):
             f"{'=' * 60}\n"
         )
         super().__init__(msg)
+
+    def __reduce__(self):
+        return (self.__class__, (self._section, self._key))
 
 
 _SENTINEL = object()
