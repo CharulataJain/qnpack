@@ -79,6 +79,10 @@ def create_switch_nodes(
     qpu_info: dict,
     bsm_nodes: list,
     bsm_info: dict,
+    port_insertion_loss: float,
+    mems_latency_ns: float,
+    q_lightspeed: float,
+    internal_length_km: float,
 ):
     """Create separate QuantumSwitchNode and ClassicalSwitchNode.
 
@@ -138,13 +142,10 @@ def create_switch_nodes(
     }
 
     # ── Optical switch port names ─────────────────────────────────────────────
-    # These names are used ONLY as keys in the routing_table dict.
-    # The switch component ports themselves are NOT connected to anything —
-    # QuantumSwitchProtocol reads the routing_table and routes qubits manually.
-    #   - Each QPU has one input port: q_from_{qpu_label}
-    #   - Each BSM has TWO output ports: q_to_{bsm_label}_left and q_to_{bsm_label}_right
-    #     so that the left QPU's photon goes to BSM.left_port and the right QPU's
-    #     photon goes to BSM.right_port.
+    # Keys in routing_table only; the component ports stay unconnected and
+    # QuantumSwitchProtocol routes qubits from the table.  Each QPU has one
+    # input (q_from_{qpu_label}); each BSM has two outputs
+    # (q_to_{bsm_label}_left/_right) for the left and right QPU's photon.
     q_port_names = []
     for qpu_label in qpu_info:
         q_port_names.append(f"q_from_{qpu_label}")
@@ -155,6 +156,10 @@ def create_switch_nodes(
     q_switch = FullMeshOpticalSwitch(
         name="QuantumSwitch",
         q_port_names=q_port_names,
+        port_insertion_loss=port_insertion_loss,
+        mems_latency=mems_latency_ns,
+        q_lightspeed=q_lightspeed,
+        internal_length_km=internal_length_km,
     )
     log.debug(f"Created FullMeshOpticalSwitch with routing-table ports: {q_port_names}")
 
@@ -204,9 +209,8 @@ def create_switch_nodes(
             )
 
     # ── Classical switch node ─────────────────────────────────────────────────
-    # - Node port names ARE the switch component port names
-    # - add_subcomponent with forward_input/forward_output wires all ports
-    #   bidirectionally so Switch._input_handler is properly triggered
+    # Node port names match the switch component's.  forward_input/output
+    # wire all ports bidirectionally so Switch._input_handler triggers.
     classical_switch_ports = list(c_switch.ports.keys())
     classical_switch_node = Node("ClassicalSwitchNode", port_names=classical_switch_ports)
 
@@ -233,12 +237,13 @@ def build_switch_connections(
     qpu_info: dict,
     bsm_nodes: list,
     bsm_info: dict,
-    q_lightspeed: float = 200000,
-    c_lightspeed: float = 200000,
-    photon_loss: float = 0,
-    init_photon_loss: float = 0,
-    fiber_depolar_rate: float = 0,
-    time_independent: bool = True,
+    q_lightspeed: float,
+    c_lightspeed: float,
+    photon_loss: float,
+    init_photon_loss: float,
+    fiber_depolar_rate: float,
+    time_independent: bool,
+    simulated_length_km: float,
 ):
     """Wire the switch nodes into the NetSquid network.
 
@@ -347,7 +352,7 @@ def build_switch_connections(
             quantum_switch_node,
             channel_to=QuantumChannel(
                 name=f"qch_{qpu_name}_to_QuantumSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=qpu_out_port,
@@ -356,8 +361,8 @@ def build_switch_connections(
         )
         log.debug(f"Quantum: {qpu_name}.{qpu_out_port} -> QuantumSwitchNode.{node_in}")
 
-        # Forward additional q_to_{bsm_label} ports to the same first port
-        # (the switch routes based on configured route, not port name)
+        # Additional q_to_{bsm_label} ports forward to the first one; the
+        # switch routes by configured route, not port name.
         for bsm_conn in bsm_quantum_outs[1:]:
             bsm_label = bsm_conn["bsm_node"]
             extra_port = f"q_to_{bsm_label}"
@@ -369,8 +374,8 @@ def build_switch_connections(
                 )
 
     # ── Step 2: QuantumSwitchNode → BSM nodes (quantum, two channels per BSM) ──
-    # Following the dqc branch pattern: each BSM has a left and right quantum port.
-    # The left QPU's photon goes to BSM.left_port, the right QPU's photon to BSM.right_port.
+    # The left QPU's photon goes to BSM.left_port, the right QPU's to
+    # BSM.right_port.
     for bsm_label, bsm_inf in bsm_info.items():
         bsm_node = label_to_bsm_node[bsm_label]
         bsm_name = bsm_node.name
@@ -385,7 +390,7 @@ def build_switch_connections(
             bsm_node,
             channel_to=QuantumChannel(
                 name=f"qch_QuantumSwitchNode_to_{bsm_name}_left",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=node_out_left,
@@ -399,7 +404,7 @@ def build_switch_connections(
             bsm_node,
             channel_to=QuantumChannel(
                 name=f"qch_QuantumSwitchNode_to_{bsm_name}_right",
-                length=0.01,
+                length=simulated_length_km,
                 models=_make_qch_models(),
             ),
             port_name_node1=node_out_right,
@@ -409,9 +414,8 @@ def build_switch_connections(
         log.debug(f"Quantum: QuantumSwitchNode.{node_out_right} -> {bsm_name}.{bsm_right_port}")
 
     # ── Step 3: BSM nodes → ClassicalSwitchNode (classical result + clock) ────
-    # Both BSM_res_to_left/right and clk_to_left/right are wired through the
-    # classical switch so that both the left QPU and right QPU receive results
-    # and clock ticks.
+    # BSM_res_to_left/right and clk_to_left/right route through the classical
+    # switch so both QPUs receive results and clock ticks.
     for bsm_label, bsm_inf in bsm_info.items():
         bsm_node = label_to_bsm_node[bsm_label]
         bsm_name = bsm_node.name
@@ -423,7 +427,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_res_left_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="BSM_res_to_left",
@@ -442,7 +446,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_res_right_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="BSM_res_to_right",
@@ -461,7 +465,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_clk_left_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="clk_to_left",
@@ -480,7 +484,7 @@ def build_switch_connections(
             classical_switch_node,
             channel_to=ClassicalChannel(
                 name=f"cch_bsm_clk_right_{bsm_name}_to_ClassicalSwitchNode",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1="clk_to_right",
@@ -491,6 +495,33 @@ def build_switch_connections(
             f"BSM Clock (right): {bsm_name}.clk_to_right -> "
             f"ClassicalSwitchNode.{clk_right_sw_port}"
         )
+
+        # ── EPR-factory classical plane: BSM → ClassicalSwitchNode ────────
+        for bsm_port, switch_key in (
+            ("factory_BSM_res_to_left", "factory_res_left"),
+            ("factory_BSM_res_to_right", "factory_res_right"),
+            ("factory_clk_to_left", "factory_clk_left"),
+            ("factory_clk_to_right", "factory_clk_right"),
+        ):
+            sw_port = c_switch.get_switch_port(bsm_name, switch_key)
+            if sw_port is None or bsm_port not in bsm_node.ports:
+                continue
+            net.add_connection(
+                bsm_node,
+                classical_switch_node,
+                channel_to=ClassicalChannel(
+                    name=f"cch_{switch_key}_{bsm_name}_to_ClassicalSwitchNode",
+                    length=simulated_length_km,
+                    models=c_delay_models,
+                ),
+                port_name_node1=bsm_port,
+                port_name_node2=sw_port,
+                label=f"{switch_key}_{bsm_name}_to_ClassicalSwitchNode",
+            )
+            log.debug(
+                f"Factory ({switch_key}): {bsm_name}.{bsm_port} -> "
+                f"ClassicalSwitchNode.{sw_port}"
+            )
 
     # ── Step 4: ClassicalSwitchNode → QPU nodes (classical result + clock) ────
     for qpu_label, info in qpu_info.items():
@@ -510,7 +541,7 @@ def build_switch_connections(
             qpu_node,
             channel_to=ClassicalChannel(
                 name=f"cch_ClassicalSwitchNode_bsm_res_to_{qpu_name}",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1=res_sw_port,
@@ -528,7 +559,7 @@ def build_switch_connections(
             qpu_node,
             channel_to=ClassicalChannel(
                 name=f"cch_ClassicalSwitchNode_clk_to_{qpu_name}",
-                length=0.01,
+                length=simulated_length_km,
                 models=c_delay_models,
             ),
             port_name_node1=clk_sw_port,
@@ -538,6 +569,34 @@ def build_switch_connections(
         log.debug(
             f"BSM Clock: ClassicalSwitchNode.{clk_sw_port} -> {qpu_name}.clk_from_switch"
         )
+
+        # ── EPR-factory classical plane: ClassicalSwitchNode → QPU ────────
+        for switch_key, qpu_port in (
+            ("factory_res", "factory_bsm_res_from_switch"),
+            ("factory_clk", "factory_clk_from_switch"),
+        ):
+            sw_port = c_switch.get_switch_port(qpu_name, switch_key)
+            if sw_port is None:
+                continue
+            if qpu_port not in qpu_node.ports:
+                qpu_node.add_ports([qpu_port])
+                log.debug(f"Added port '{qpu_port}' to {qpu_name}")
+            net.add_connection(
+                classical_switch_node,
+                qpu_node,
+                channel_to=ClassicalChannel(
+                    name=f"cch_ClassicalSwitchNode_{switch_key}_to_{qpu_name}",
+                    length=simulated_length_km,
+                    models=c_delay_models,
+                ),
+                port_name_node1=sw_port,
+                port_name_node2=qpu_port,
+                label=f"{switch_key}_ClassicalSwitchNode_to_{qpu_name}",
+            )
+            log.debug(
+                f"Factory ({switch_key}): ClassicalSwitchNode.{sw_port} -> "
+                f"{qpu_name}.{qpu_port}"
+            )
 
     log.debug("Switch connections wired successfully")
 

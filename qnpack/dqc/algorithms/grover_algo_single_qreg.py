@@ -40,9 +40,8 @@ def generate_grover_qasm_single_qreg(n_qubits, target_bitstring, iterations):
     if len(target_bitstring) != n_qubits:
         raise ValueError("Target bitstring length must match n_qubits")
 
-    # Calculate ancillas needed for Toffoli chain decomposition
-    # For n data qubits, we need n-2 ancillas to build the control chain
-    # q[0],q[1]→anc[0], anc[0],q[2]→anc[1], ..., anc[n-3],q[n-1]→final_control
+    # Toffoli chain needs n-2 ancillas for n data qubits:
+    # q[0],q[1]→anc[0], anc[0],q[2]→anc[1], ..., anc[n-3],q[n-1]→final.
     if n_qubits <= 3:
         n_ancillas = 0
     else:
@@ -62,9 +61,8 @@ def generate_grover_qasm_single_qreg(n_qubits, target_bitstring, iterations):
 
     target_bits = [int(b) for b in target_bitstring]
 
-    # Build the multi-controlled gate decomposition using only CCX (Toffoli) gates
-    # Strategy: Chain controls together using ancillas
-    # For n data qubits, we build: q[0],q[1]→anc[0], anc[0],q[2]→anc[1], ..., anc[n-3],q[n-1]→final
+    # Decompose the multi-controlled gate into CCX gates, chaining controls
+    # through the ancillas allocated above.
     needed_ops = []
     anc_counter = 0
 

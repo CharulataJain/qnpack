@@ -120,8 +120,7 @@ class QASM3CommandExtractor(QASMVisitor):
                 param_val = self._eval_parameter(arg)
                 params.append(param_val)
         
-        # Determine operation type and build command
-        # Special handling for entanglement (2-qubit remote operation)
+        # Build the command; entanglement is a 2-qubit remote operation.
         if gate_name == 'entanglement' and len(qubits) >= 2:
             q0, q1 = qubits[0], qubits[1]
             qpu0_id, qpu1_id = q0['qpu_id'], q1['qpu_id']
@@ -218,8 +217,7 @@ class QASM3CommandExtractor(QASMVisitor):
         if not qubit_info:
             return self.generic_visit(node)
         
-        # Determine if this is a final measurement or intermediate
-        # Final measurements go to the output register (e.g., 'm[0]', 'm[1]')
+        # Final measurements target the output register, e.g. 'm[0]'.
         is_final = bit_name_no_idx and bit_name_no_idx == self.output_reg_name
         
         # Extract measurement index for final measurements
@@ -234,8 +232,7 @@ class QASM3CommandExtractor(QASMVisitor):
         if is_final and m_idx is not None:
             final_key = f"{self.output_reg_name}_{m_idx}"
 
-        # For intermediate measurements, use register name without index
-        # (matches old regex parser behavior)
+        # Intermediate measurements use the bare register name.
         clbit_for_cmd = bit_name_no_idx if not is_final else None
 
         log.debug(
@@ -295,8 +292,7 @@ class QASM3CommandExtractor(QASMVisitor):
         """Extract conditional (if) statements."""
         self.global_idx += 1
         
-        # Extract condition bit - use register name without index
-        # (matches old regex parser behavior)
+        # Condition bit uses the bare register name.
         clbit_name = None
         if hasattr(node, 'condition'):
             clbit_name = self._extract_bit_name(node.condition, include_index=False)
@@ -337,8 +333,7 @@ class QASM3CommandExtractor(QASMVisitor):
                         "global_idx": self.global_idx,
                     })
         
-        # Don't call generic_visit - we've already processed the if_block contents
-        # and don't want the gates inside to be visited again by visit_QuantumGate
+        # Skip generic_visit so the if_block's gates are not visited twice.
         return None
     
     def _extract_qubit_info(self, qubit_node):
@@ -346,8 +341,8 @@ class QASM3CommandExtractor(QASMVisitor):
         # Extract name from AST
         name = qubit_node.name.name
 
-        # Extract index from AST. The structure is a list of lists of expressions.
-        # e.g., q[1] -> [[IntegerLiteral(1)]]
+        # The AST nests indices as lists of expressions: q[1] is
+        # [[IntegerLiteral(1)]].
         index = qubit_node.indices[0][0].value
 
         # Determine QPU ID from qubit registry

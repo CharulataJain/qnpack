@@ -167,10 +167,9 @@ class TketFrontend(BaseFrontend):
         dict[int, list[dict]]
         """
         source = self._source
-        # Both file and Circuit modes need the DataCollector to measure
-        # data qubits after the circuit executes.  The dist_commands.txt
-        # format does not contain measurement ops; the measure_qubits
-        # config specifies which positions to read.
+        # dist_commands.txt carries no measurement ops, so both file and
+        # Circuit modes rely on measure_qubits to tell the DataCollector
+        # which positions to read after execution.
         self._needs_datacollector = True
         if isinstance(source, str):
             return _partition_commands_from_file(source, qpu_info=qpu_info)

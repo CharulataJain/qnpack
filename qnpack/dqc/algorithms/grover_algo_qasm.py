@@ -9,8 +9,7 @@ def generate_grover_qasm(n_qubits, target_bitstring, iterations):
     if len(target_bitstring) != n_qubits:
         raise ValueError("Target bitstring length must match n_qubits")
 
-    # Determine ancillas needed for large multi-controlled gates
-    # We'll use a simple chain logic.
+    # Ancillas for large multi-controlled gates, chained.
     n_ancillas = (n_qubits + 1) // 2 
     if n_ancillas < 2 and n_qubits > 3:
         n_ancillas = 2
@@ -31,8 +30,7 @@ def generate_grover_qasm(n_qubits, target_bitstring, iterations):
 
     target_bits = [int(b) for b in target_bitstring]
     
-    # Pre-calculate decomposition of multi-control flip
-    # This uses a simple grouping structure.
+    # Decompose the multi-control flip by grouping controls.
     needed_ops = []
     current_controls = []
     anc_counter = 0
@@ -111,9 +109,7 @@ def generate_grover_qasm(n_qubits, target_bitstring, iterations):
 N_QUBITS = 12
 TARGET_BITSTRING = "101111111111" # 12 qubits: q0=1, q1=0, q2=1...q11=1
 
-# Optimal iterations approx pi/4 * sqrt(2^n)
-# For 8 qubits: ~12
-# For 12 qubits: ~45-50
+# Optimal iterations ~ pi/4 * sqrt(2^n): ~12 for 8 qubits, ~45-50 for 12.
 ITERATIONS = 50
 
 # Generate QASM

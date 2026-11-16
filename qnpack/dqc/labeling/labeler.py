@@ -60,6 +60,12 @@ def label_commands(qpu_commands: dict) -> dict:
     # Handle cross-QPU classical communication (msg_exchange)
     _label_msg_exchange(new_commands)
 
+    # Re-sort by global_idx after msg_exchange insertion (appends are out-of-order).
+    # Only applies to the non-ejpp path; ejpp commands use a different ordering.
+    if not has_ejpp:
+        for qpu_id in new_commands:
+            new_commands[qpu_id].sort(key=lambda c: c.get('global_idx', 0))
+
     return new_commands
 
 
@@ -361,11 +367,20 @@ def _label_matching_peer(
 # ---------------------------------------------------------------------------
 
 def _clbit_owner_qpu(clbit_name: str):
-    """Extract the QPU id encoded in a clbit name like _clbit_comm_qubit2_1."""
+    """Extract the QPU id encoded in a clbit name.
+
+    Handles two naming conventions:
+    - Old eJPP format: ``_clbit_comm_qubit{N}_...``
+    - cisco_v2 QASM3 format: ``_clbit_qcomm_qpu_{N}_r{R}c{C}``
+    """
     import re
     m = re.match(r'_clbit_comm_qubit(\d+)_', clbit_name or '')
     if m:
         return int(m.group(1))
+    # cisco_v2 QASM3 format uses 0-based QPU numbers; sim uses 1-based
+    m = re.match(r'_clbit_qcomm_qpu_(\d+)_', clbit_name or '')
+    if m:
+        return int(m.group(1)) + 1
     return None
 
 

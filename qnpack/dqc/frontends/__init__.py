@@ -13,6 +13,9 @@ Supported modes
 """
 
 import os
+
+from qnpack.common.config import MissingConfigError, require_cfg
+
 from .tket_frontend import TketFrontend
 from .qasm3_frontend import QASM3Frontend
 from .qasm3v2_frontend import QASM3V2Frontend
@@ -47,7 +50,9 @@ def load_frontend(circuit_cfg, base_dir=None):
     tuple[BaseFrontend, str]
         ``(frontend, resolved_source_path)``
     """
-    mode = getattr(circuit_cfg, 'mode', 'tket')
+    if circuit_cfg is None:
+        raise MissingConfigError("circuit", "mode")
+    mode = require_cfg(circuit_cfg, 'mode', 'circuit')
 
     cls = _REGISTRY.get(mode)
     if cls is None:
