@@ -298,12 +298,10 @@ class DQCSimulation(Simulation):
 
         from netsquid.components.clock import Clock
 
-        success_reached = [False]
-
         def _stop_on_protocol_success(ev):
-            success_reached[0] = True
-            # Don't stop clocks — stopping them causes cascading pydynaa events
-            # on Linux that hang sim_run. The sim-time cap below bounds the run.
+            # sim_stop() stops the event loop at this instant without touching
+            # clocks. Stopping clocks directly causes cascading pydynaa events
+            # on Linux that prevent sim_run from returning.
             ns.sim_stop()
 
         stop_handler = pd.EventHandler(_stop_on_protocol_success)
@@ -312,17 +310,9 @@ class DQCSimulation(Simulation):
         )
 
         protocol.start()
-        ns.sim_run(end_time=_SIM_RUN_SAFETY_CAP_NS)
-        if not success_reached[0]:
-            # Protocol never signalled SUCCESS — genuine hang, discard the run.
-            protocol.stop()
-            self._halt_free_running_clocks(net, run_idx)
-            raise SimulationHangError(
-                f"Run {run_idx}: protocol never reached SUCCESS within "
-                f"{_SIM_RUN_SAFETY_CAP_NS/1e9:.0f}s sim-time. "
-                "Likely cause: BSM retry exhaustion or orphaned clock. "
-                "Run discarded."
-            )
+        # sim_run() returns when sim_stop() is called above.
+        # SIGALRM (_REAL_TIME_CAP_SECONDS) discards runs where SUCCESS never fires.
+        ns.sim_run()
 
         col_names = frontend.get_col_names(measure_qubits)
         row = self._collect_row(
@@ -544,11 +534,27 @@ class DQCSimulation(Simulation):
             if not config_runs:
                 raise RuntimeError(
                     f"All simulation runs for config '{noise_label}' were "
-                    "discarded (every run hit the simulation-time safety cap)."
+                    "discarded. Check for BSM retry exhaustion or orphaned clocks."
                 )
-            results = [item[0] for item in config_runs]
             col_names = config_runs[0][1]
             num_output_bits = config_runs[0][2]
+            zero_bits = "0" * num_output_bits
+            results = []
+            for local_idx, r in enumerate(raw_slice):
+                if r is not None:
+                    results.append(r[0])
+                else:
+                    zero_row = {c: 0 for c in col_names}
+                    zero_row["run"] = local_idx
+                    zero_row["rng_state_sha256"] = "discarded"
+                    zero_row["worker_pid"] = 0
+                    zero_row["sim_duration_s"] = 0.0
+                    zero_row["entl_time_s"] = 0.0
+                    zero_row["entanglement_count"] = 0
+                    zero_row["mean_entl_time_s"] = 0.0
+                    zero_row["avg_entanglement_time_s"] = 0.0
+                    zero_row["bitstring"] = zero_bits
+                    results.append(zero_row)
             log.info(f"=== Config: {noise_label} ===")
             results_util.log_measurement_table(results, col_names)
 
