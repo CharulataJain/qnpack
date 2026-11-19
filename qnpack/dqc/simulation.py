@@ -17,6 +17,7 @@ import json
 import hashlib
 import logging
 import os
+import sys
 import multiprocessing as mp
 import copy
 import pickle
@@ -182,11 +183,13 @@ class DQCSimulation(Simulation):
         jobs_list = list(jobs)
         n = len(jobs_list)
         results = [None] * n
-        with ProcessPoolExecutor(
+        pool_kwargs = dict(
             max_workers=min(max_workers, total_runs),
             mp_context=mp.get_context("spawn"),
-            max_tasks_per_child=1,
-        ) as executor:
+        )
+        if sys.version_info >= (3, 11):
+            pool_kwargs["max_tasks_per_child"] = 1
+        with ProcessPoolExecutor(**pool_kwargs) as executor:
             futures = {
                 executor.submit(_run_isolated, j): idx
                 for idx, j in enumerate(jobs_list)
