@@ -19,7 +19,7 @@
 # initpl sweep values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 # rate-index is 1-based: 1=0, 2=0.1, ..., 8=0.7
 
-set -euo pipefail
+set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
 cd "$REPO_ROOT"
@@ -33,13 +33,19 @@ initpl_values=(0 0.1 0.2 0.3 0.4 0.5 0.6 0.7)
 grover_runs=(500 500 500 250 250 125 125 125)
 qaoa_runs=(200 200 200 100 100  50  50  50)
 
+FAILED=0
+
 run_one() {
     local desc="$1"; shift
     N=$((N + 1))
     echo ""
     echo "[$N/$TOTAL] $(date '+%Y-%m-%d %H:%M:%S')  START  $desc"
-    "$@"
-    echo "[$N/$TOTAL] $(date '+%Y-%m-%d %H:%M:%S')  DONE   $desc"
+    if "$@"; then
+        echo "[$N/$TOTAL] $(date '+%Y-%m-%d %H:%M:%S')  DONE    $desc"
+    else
+        echo "[$N/$TOTAL] $(date '+%Y-%m-%d %H:%M:%S')  FAILED  $desc (exit $?)" >&2
+        FAILED=$((FAILED + 1))
+    fi
 }
 
 echo "========================================"
@@ -90,6 +96,11 @@ done
 
 echo ""
 echo "========================================"
-echo "  ALL 32 CONDITIONS COMPLETE"
+if [ "$FAILED" -eq 0 ]; then
+    echo "  ALL 32 CONDITIONS COMPLETE"
+else
+    echo "  DONE — $FAILED condition(s) FAILED (see FAILED lines above)"
+fi
 echo "  Finished: $(date)"
 echo "========================================"
+exit "$FAILED"
