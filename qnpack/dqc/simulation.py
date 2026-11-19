@@ -299,14 +299,12 @@ class DQCSimulation(Simulation):
         from netsquid.components.clock import Clock
 
         def _stop_on_protocol_success(ev):
-            # Calling sim_run(end_time=T) in pydynaa fast-forwards sim_time()
-            # to T when the event queue drains unless sim_stop() is called.
-            # Stop at the exact completion instant only if no clock is stranded
-            # (so an orphaned clock still runs into the safety cap).
+            # Stop all free-running clocks (max_ticks=-1) so the event queue
+            # drains, then halt the simulation at the exact completion instant.
             for node in net.nodes.values():
                 for sub in node.subcomponents.values():
                     if isinstance(sub, Clock) and sub.is_running:
-                        return
+                        sub.stop()
             ns.sim_stop()
 
         stop_handler = pd.EventHandler(_stop_on_protocol_success)
@@ -315,15 +313,7 @@ class DQCSimulation(Simulation):
         )
 
         protocol.start()
-        ns.sim_run(end_time=_SIM_RUN_SAFETY_CAP_NS)
-        if ns.sim_time() >= _SIM_RUN_SAFETY_CAP_NS:
-            protocol.stop()
-            self._halt_free_running_clocks(net, run_idx)
-            raise SimulationHangError(
-                f"Run {run_idx} hit the {_SIM_RUN_SAFETY_CAP_NS/1e9:.0f}s "
-                "simulation-time safety cap. Likely cause: an orphaned clock "
-                "(max_ticks=-1) not stopped before teardown. Run discarded."
-            )
+        ns.sim_run()  # SIGALRM (_REAL_TIME_CAP_SECONDS) handles genuine hangs
 
         col_names = frontend.get_col_names(measure_qubits)
         row = self._collect_row(
