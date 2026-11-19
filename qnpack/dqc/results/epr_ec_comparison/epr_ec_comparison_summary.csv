@@ -1,0 +1,13 @@
+circuit_key,circuit_label,entanglement,condition_label,num_runs,metric,value,raw_csv
+cisco_grover,Grover4 2QPU (cisco),bsm,"Physical BSM
+(Full SotA)",100,p_target,0.04,cisco_grover_bsm_100runs.csv
+cisco_grover,Grover4 2QPU (cisco),epr_model,"EPR model
+(d=3 EC, F=0.93)",300,p_target,0.13,cisco_grover_epr_model_300runs.csv
+tket_grover,Grover4 3QPU (tket),bsm,"Physical BSM
+(Full SotA)",100,p_target,0.13,tket_grover_bsm_100runs.csv
+tket_grover,Grover4 3QPU (tket),epr_model,"EPR model
+(d=3 EC, F=0.93)",300,p_target,0.38,tket_grover_epr_model_300runs.csv
+cisco_v2_plaquette,Plaquette 1D 2QPU (cisco_v2),bsm,"Physical BSM
+(Full SotA)",100,p_center,0.58,cisco_v2_plaquette_bsm_100runs.csv
+cisco_v2_plaquette,Plaquette 1D 2QPU (cisco_v2),epr_model,"EPR model
+(d=3 EC, F=0.93)",300,p_center,0.48,cisco_v2_plaquette_epr_model_300runs.csv
