@@ -546,7 +546,7 @@ class DQCSimulation(Simulation):
                 else:
                     zero_row = {c: 0 for c in col_names}
                     zero_row["run"] = local_idx
-                    zero_row["rng_state_sha256"] = "discarded"
+                    zero_row["rng_state_sha256"] = f"discarded_{local_idx}"
                     zero_row["worker_pid"] = 0
                     zero_row["sim_duration_s"] = 0.0
                     zero_row["entl_time_s"] = 0.0
