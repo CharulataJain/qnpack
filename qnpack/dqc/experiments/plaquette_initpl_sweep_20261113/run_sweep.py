@@ -110,6 +110,12 @@ def main(argv=None):
             config["channel"]["photon_loss"] = manifest["photon_loss"]
             config["channel"]["fiber_depolar_rate"] = manifest["fiber_depolar_rate"]
             config["channel"]["init_photon_loss"] = initpl
+            if entanglement_method == "magic":
+                from munch import munchify
+                from qnpack.dqc.protocols.epr_params import magic_delay_from_losses
+                config["entanglement"]["magic_state_delay_ns"] = magic_delay_from_losses(
+                    munchify(config)
+                )
             config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
             if not raw_path.exists():

@@ -1,7 +1,9 @@
-# init_photon_loss sweep for Grover4, 2 & 3 QPU, BSM/KET mode.
-# All other realistic noise is on: T1=1e9, T2=1e8, emission_fidelity=0.99,
-# collection_efficiency=0.85, photon_loss=0.2, fiber_depolar_rate=0.2.
-# 1QPU excluded: init_photon_loss only affects inter-QPU photon channels.
+# init_photon_loss sweep for Grover4, 2QPU, magic-state mode.
+# Uses magic_delay_from_losses() to convert the 4 loss params into a
+# per-Bell-pair delay so T1/T2 decoherence accumulates realistically
+# without running the full physical BSM simulation.
+# T1=1e9 ns, T2=1e8 ns, emission_fidelity=0.99, collection_efficiency=0.85,
+# photon_loss=0.2, fiber_depolar_rate=0.2 all remain active.
 #
 # Run:
 #   python -m qnpack.dqc.experiments.grover_channel_sweep \
@@ -22,7 +24,7 @@ max_workers: 16
 numerical_threads_per_worker: 1
 target_bitstring: '1011'
 circuit_mode: cisco
-entanglement_method: bsm
+entanglement_method: magic
 formalism: KET
 qpu_circuits:
   2: qasm/grover4_2qpu.qasm

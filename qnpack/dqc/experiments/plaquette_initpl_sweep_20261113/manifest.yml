@@ -38,9 +38,9 @@ init_photon_loss_values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 circuits:
   1d_2qpu:
     qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq121_obc_L9_g1.000_dt0.1000_n6.qasm
-    entanglement_method: bsm
+    entanglement_method: magic
     num_runs: 200
   2d_2qpu:
     qasm: qasm/plaquette_sweep/9qubit_2qpu_plaq2d121_obc_Lx3_Ly3_g1.000_dt0.1000_n6.qasm
-    entanglement_method: bsm
+    entanglement_method: magic
     num_runs: 200

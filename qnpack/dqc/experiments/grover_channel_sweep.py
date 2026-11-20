@@ -52,8 +52,8 @@ def _load_manifest(path):
         raise ValueError("algorithm must contain only letters, digits, and underscores")
     if manifest["circuit_mode"] != "cisco":
         raise ValueError("circuit_mode must be cisco")
-    if manifest["entanglement_method"] != "bsm":
-        raise ValueError("entanglement_method must be bsm")
+    if manifest["entanglement_method"] not in ("bsm", "magic"):
+        raise ValueError("entanglement_method must be bsm or magic")
     if manifest["formalism"] != "KET":
         raise ValueError("formalism must be KET")
     _positive_int(manifest["num_runs"], "num_runs")
@@ -150,6 +150,12 @@ def _run_condition(manifest, paths, run_count, workers, threads, qpu_count,
     if key not in config[section]:
         raise ValueError(f"parameters.{section}.{key} is absent; cannot sweep it")
     config[section][key] = rate
+    if manifest["entanglement_method"] == "magic":
+        from munch import munchify
+        from qnpack.dqc.protocols.epr_params import magic_delay_from_losses
+        config["entanglement"]["magic_state_delay_ns"] = magic_delay_from_losses(
+            munchify(config)
+        )
     config_text = yaml.safe_dump(config, sort_keys=False)
     metadata = {
         "algorithm": manifest["algorithm"],
