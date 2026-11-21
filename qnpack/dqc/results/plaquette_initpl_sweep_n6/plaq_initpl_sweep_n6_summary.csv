@@ -1,2 +1,2 @@
 circuit,n_steps,entanglement_method,init_photon_loss,num_runs,p_center_1,raw_csv
-1d_2qpu,6,bsm,0,2,1.0,plaq_initpl_1d_2qpu_n6_initpl0_2runs.csv
+2d_2qpu,6,magic,0.7,500,0.244,plaq_initpl_2d_2qpu_n6_initpl0p7_500runs.csv

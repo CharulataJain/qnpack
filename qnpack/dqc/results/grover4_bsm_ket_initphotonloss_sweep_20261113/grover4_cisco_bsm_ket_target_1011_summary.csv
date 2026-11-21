@@ -1,0 +1,2 @@
+algorithm,circuit_mode,entanglement_method,formalism,qpu_count,qasm_file,sweep_index,swept_parameter,swept_value,fiber_depolar_rate,target_bitstring,target_count,num_runs,target_state_probability,raw_csv
+grover4,cisco,magic,KET,2,qasm/grover4_2qpu.qasm,8,channel.init_photon_loss,0.7,0.2,1011,72,500,0.144,grover4_cisco_bsm_ket_2qpu_initpl0p7_500runs.csv

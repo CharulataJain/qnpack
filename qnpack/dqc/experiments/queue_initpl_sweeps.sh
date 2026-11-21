@@ -6,12 +6,9 @@
 #   Plaquette 1d_2qpu × 8 initpl     =  8 conditions
 #   Plaquette 2d_2qpu × 8 initpl     =  8 conditions
 #
-# Run counts taper at high initpl to keep wall time manageable:
-#   initpl 0.0–0.2  (idx 1–3): full  runs (Grover=500, QAOA/Plaq=200)
-#   initpl 0.3–0.4  (idx 4–5): half  runs (Grover=250, QAOA/Plaq=100)
-#   initpl 0.5–0.7  (idx 6–8): quarter runs (Grover=125, QAOA/Plaq=50)
-#
-# All BSM. Resumable: re-run the script to skip completed conditions.
+# Uniform 500 runs per condition (magic-state mode — no BSM hang, all conditions
+# run equally fast regardless of initpl). Gives 95% CI width ≤ 0.09 everywhere.
+# Resumable: re-run the script to skip completed conditions.
 #
 # Usage (from qnpack repo root):
 #   bash qnpack/dqc/experiments/queue_initpl_sweeps.sh 2>&1 | tee sweep_log.txt
@@ -29,9 +26,9 @@ N=0
 
 initpl_values=(0 0.1 0.2 0.3 0.4 0.5 0.6 0.7)
 
-# grover_runs[idx-1] and qaoa_runs[idx-1] give num_runs for each rate index
-grover_runs=(500 500 500 250 250 125 125 125)
-qaoa_runs=(200 200 200 100 100  50  50  50)
+# Uniform 500 runs for all conditions
+grover_runs=(500 500 500 500 500 500 500 500)
+qaoa_runs=(  500 500 500 500 500 500 500 500)
 
 FAILED=0
 

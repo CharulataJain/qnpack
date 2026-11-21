@@ -1,9 +1,9 @@
 bsm:
-  coupling_efficiency: 1
+  coupling_efficiency: 0.9
   detection_window: 4320000
   detector_dead_time: 0
   detector_wait_factor: 1.05
-  deterministic_bsm: false
+  deterministic_bsm: true
   error_on_fail: false
   max_emission_retries: 90
   retry_duration: 0
@@ -45,7 +45,7 @@ memory:
   T2: 1.0e+15
   noise_model: T1T2NoiseModel
 qpu:
-  collection_efficiency: 1
+  collection_efficiency: 0.69
   emission_duration: 0
   emission_fidelity: 1
   num_qpu_nodes: 3

@@ -74,12 +74,12 @@ qpu:
   one_q_depolar_prob: 0          # 0.00001 — depolarising probability after every 1-qubit gate (h, x, z, rz, sx, sdg, u1, u2, u3, s)
   emission_fidelity: 0.99           # photon emission fidelity (1.0 = perfect)
   emission_duration: 0           # Duration of photon emission (ns)
-  collection_efficiency: 0.85       # photon collection efficiency (1.0 = no loss)
+  collection_efficiency: 0.69       # photon collection efficiency — charu-ft Full SotA
 
 memory:
   noise_model: "T1T2NoiseModel"  # T1T2NoiseModel for trapped ions
-  T1: 1000000000               # T1 coherence time (ns) = infinite (noiseless default)
-  T2: 100000000               # T2 coherence time (ns) = infinite (noiseless default)
+  T1: 600000000               # T1 coherence time (ns) = infinite (noiseless default)
+  T2: 60000000               # T2 coherence time (ns) = infinite (noiseless default)
   # T1: 1e15
   # T2: 1e15
 
@@ -110,10 +110,10 @@ bsm:
   #           rate, models a linear-optical BSM. Peer applies H, then X if [3].
   #   true  — standard CNOT + H + Z-measure circuit. Always succeeds (100% swap
   #           rate). Peer applies X only if [3]. Useful for protocol debugging.
-  deterministic_bsm: false
+  deterministic_bsm: true
   detection_window: 4320000       # BSM detector gating window (ns)
   system_delay: 0                 # BSM detector system delay (ns)
-  coupling_efficiency: 1          # Photon coupling efficiency (0 to 1)
+  coupling_efficiency: 0.9        # Photon coupling efficiency — charu-ft Full SotA
   detector_dead_time: 0           # Detector dead time (ns)
   error_on_fail: false            # Raise on unsuccessful detector outcome
   detector_wait_factor: 1.05       # Multiplier on travel time for detector dead wait
